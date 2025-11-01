@@ -4,7 +4,7 @@
   "description": "WCAG 2.2 Accessibility Checker for Figma Frames",
   "scripts": {
     "build": "tsc && npm run copy-ui",
-    "copy-ui": "copy ui.html dist\\ui.html",
+    "copy-ui": "cp ui.html dist/ui.html",
     "watch": "tsc --watch"
   },
   "devDependencies": {
