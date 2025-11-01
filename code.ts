@@ -1,5 +1,5 @@
-// code.ts - Enhanced plugin with overlay system and DeepSeek AI (FIXED)
-figma.showUI(__html__, { width: 360, height: 700 });
+// code.ts - Professional Accessibility Plugin with Advanced Features
+figma.showUI(__html__, { width: 380, height: 750, themeColors: true });
 
 interface AccessibilityIssue {
   elementId: string;
@@ -22,6 +22,9 @@ interface AccessibilityIssue {
 let selectedFrame: FrameNode | null = null;
 let currentIssues: AccessibilityIssue[] = [];
 let overlayFrame: FrameNode | null = null;
+let isPaused = false;
+let analysisProgress = 0;
+let totalElements = 0;
 
 figma.on('selectionchange', () => {
   const selection = figma.currentPage.selection;
@@ -42,9 +45,23 @@ figma.on('selectionchange', () => {
 });
 
 figma.ui.onmessage = async (msg) => {
+  if (msg.type === 'pause-analysis') {
+    isPaused = true;
+    figma.notify('⏸ Analysis paused');
+    figma.ui.postMessage({ type: 'analysis-paused' });
+  }
+
+  if (msg.type === 'resume-analysis') {
+    isPaused = false;
+    figma.notify('▶ Analysis resumed');
+    figma.ui.postMessage({ type: 'analysis-resumed' });
+  }
+
   if (msg.type === 'analyze') {
     try {
       console.log('Analysis started');
+      isPaused = false;
+      analysisProgress = 0;
 
       if (!selectedFrame) {
         figma.ui.postMessage({ type: 'error', message: 'Please select a frame first' });
@@ -56,7 +73,11 @@ figma.ui.onmessage = async (msg) => {
 
       clearOverlays();
 
-      console.log('Analyzing frame:', selectedFrame.name);
+      // Count total elements first
+      totalElements = countElements(selectedFrame);
+      figma.ui.postMessage({ type: 'analysis-progress', progress: 0, total: totalElements });
+
+      console.log('Analyzing frame:', selectedFrame.name, 'with', totalElements, 'elements');
       await analyzeFrame(selectedFrame, checks);
       console.log('Analysis complete. Issues found:', currentIssues.length);
 
@@ -125,8 +146,44 @@ figma.ui.onmessage = async (msg) => {
   }
 };
 
+function countElements(node: SceneNode): number {
+  let count = 1;
+  if ('children' in node) {
+    for (const child of node.children) {
+      count += countElements(child);
+    }
+  }
+  return count;
+}
+
 async function analyzeFrame(frame: FrameNode, checks: any) {
+  let processedElements = 0;
+
   async function checkNode(node: SceneNode) {
+    // Check if paused
+    if (isPaused) {
+      await new Promise(resolve => {
+        const checkPause = setInterval(() => {
+          if (!isPaused) {
+            clearInterval(checkPause);
+            resolve(null);
+          }
+        }, 100);
+      });
+    }
+
+    processedElements++;
+    analysisProgress = Math.round((processedElements / totalElements) * 100);
+
+    // Send progress update every 10 elements
+    if (processedElements % 10 === 0) {
+      figma.ui.postMessage({
+        type: 'analysis-progress',
+        progress: analysisProgress,
+        current: processedElements,
+        total: totalElements
+      });
+    }
     if (node.type === 'TEXT') {
       if (checks.colorContrast) {
         await checkTextContrast(node);
@@ -158,14 +215,30 @@ async function analyzeFrame(frame: FrameNode, checks: any) {
 
 async function checkTextContrast(textNode: TextNode) {
   try {
-    // Safely load font
+    // Safely load font with error handling
     const fontName = textNode.fontName;
     if (fontName === figma.mixed) {
       console.log('Mixed fonts detected, skipping:', textNode.name);
       return;
     }
-    
-    await figma.loadFontAsync(fontName as FontName);
+
+    try {
+      await figma.loadFontAsync(fontName as FontName);
+    } catch (fontError) {
+      console.warn('Font loading failed for:', fontName, '- Using fallback');
+      // Try to load Inter Regular as fallback
+      try {
+        await figma.loadFontAsync({ family: 'Inter', style: 'Regular' });
+      } catch (fallbackError) {
+        console.error('Fallback font also failed, skipping node');
+        figma.ui.postMessage({
+          type: 'font-error',
+          message: `Could not load font: ${JSON.stringify(fontName)}`,
+          node: textNode.name
+        });
+        return;
+      }
+    }
     
     const fontSize = textNode.fontSize as number;
     const bgColor = getBackgroundColor(textNode);

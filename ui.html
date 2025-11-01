@@ -8,10 +8,25 @@
       box-sizing: border-box;
     }
 
+    :root {
+      --primary: #667eea;
+      --primary-dark: #5568d3;
+      --secondary: #764ba2;
+      --success: #10b981;
+      --error: #ef4444;
+      --warning: #f59e0b;
+      --bg-primary: #ffffff;
+      --bg-secondary: #f9fafb;
+      --text-primary: #000000;
+      --text-secondary: #666666;
+      --border: #e5e5e5;
+      --shadow: rgba(0, 0, 0, 0.1);
+    }
+
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #ffffff;
-      color: #000000;
+      background: var(--bg-primary);
+      color: var(--text-primary);
       font-size: 11px;
       line-height: 16px;
       overflow-x: hidden;
@@ -22,98 +37,133 @@
     }
 
     .header {
-      padding: 12px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 16px;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
       color: white;
       margin: -12px -12px 12px -12px;
     }
 
+    .header-content {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 4px;
+    }
+
+    .header-icon {
+      font-size: 20px;
+    }
+
     h1 {
-      font-size: 13px;
+      font-size: 14px;
       font-weight: 600;
-      margin-bottom: 2px;
-      letter-spacing: -0.2px;
+      letter-spacing: -0.3px;
     }
 
     .subtitle {
       font-size: 10px;
       opacity: 0.9;
+      margin-left: 30px;
     }
 
     .tabs {
       display: flex;
       gap: 4px;
-      margin-bottom: 12px;
-      border-bottom: 1px solid #e5e5e5;
+      margin-bottom: 16px;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 0;
     }
 
     .tab {
-      padding: 8px 12px;
+      padding: 10px 16px;
       background: none;
       border: none;
       font-size: 11px;
-      font-weight: 500;
-      color: #666;
+      font-weight: 600;
+      color: var(--text-secondary);
       cursor: pointer;
       border-bottom: 2px solid transparent;
       transition: all 0.2s;
+      position: relative;
+      bottom: -2px;
     }
 
     .tab:hover {
-      color: #000;
+      color: var(--text-primary);
+      background: var(--bg-secondary);
     }
 
     .tab.active {
-      color: #667eea;
-      border-bottom-color: #667eea;
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+      background: transparent;
     }
 
     .tab-content {
       display: none;
+      animation: fadeIn 0.3s;
     }
 
     .tab-content.active {
       display: block;
     }
 
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
     .section {
-      margin-bottom: 16px;
+      margin-bottom: 20px;
+      padding: 12px;
+      background: var(--bg-secondary);
+      border-radius: 8px;
+      border: 1px solid var(--border);
     }
 
     .section-title {
       font-size: 10px;
-      font-weight: 600;
+      font-weight: 700;
       text-transform: uppercase;
-      color: #999;
-      margin-bottom: 8px;
-      letter-spacing: 0.5px;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+      letter-spacing: 0.8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .section-icon {
+      font-size: 12px;
     }
 
     .checkbox-group {
       display: flex;
       flex-direction: column;
-      gap: 2px;
+      gap: 4px;
     }
 
     .checkbox-item {
       display: flex;
       align-items: center;
-      gap: 8px;
-      padding: 6px 8px;
-      border-radius: 4px;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 6px;
       cursor: pointer;
-      transition: background 0.15s;
+      transition: all 0.2s;
+      background: var(--bg-primary);
     }
 
     .checkbox-item:hover {
-      background: #f7f7f7;
+      background: #f0f0f0;
+      transform: translateX(2px);
     }
 
     .checkbox-item input[type="checkbox"] {
-      width: 14px;
-      height: 14px;
+      width: 16px;
+      height: 16px;
       cursor: pointer;
-      accent-color: #667eea;
+      accent-color: var(--primary);
     }
 
     .checkbox-item label {
@@ -124,14 +174,21 @@
     }
 
     .selection-status {
-      padding: 10px;
-      border-radius: 6px;
+      padding: 12px;
+      border-radius: 8px;
       font-size: 11px;
-      margin-bottom: 12px;
-      border: 1px solid;
+      margin-bottom: 16px;
+      border: 2px solid;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
+      font-weight: 500;
+      animation: slideIn 0.3s;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
     .status-error {
@@ -147,33 +204,42 @@
     }
 
     .status-none {
-      background: #f9fafb;
-      border-color: #e5e7eb;
-      color: #6b7280;
+      background: var(--bg-secondary);
+      border-color: var(--border);
+      color: var(--text-secondary);
     }
 
     .btn {
       width: 100%;
-      padding: 10px;
+      padding: 12px;
       border: none;
-      border-radius: 6px;
+      border-radius: 8px;
       font-size: 11px;
-      font-weight: 600;
+      font-weight: 700;
       cursor: pointer;
       transition: all 0.2s;
       font-family: inherit;
-      letter-spacing: 0.3px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
     }
 
     .btn-primary {
-      background: #667eea;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
       color: white;
-      box-shadow: 0 2px 4px rgba(102, 126, 234, 0.2);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
     }
 
     .btn-primary:hover:not(:disabled) {
-      background: #5568d3;
-      box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-primary:active:not(:disabled) {
+      transform: translateY(0);
     }
 
     .btn-primary:disabled {
@@ -182,113 +248,224 @@
       box-shadow: none;
     }
 
-    .btn-primary.loading {
-      background: #9ca3af;
-      cursor: wait;
-      position: relative;
-    }
-
     .btn-secondary {
       background: white;
-      color: #667eea;
-      border: 1px solid #667eea;
+      color: var(--primary);
+      border: 2px solid var(--primary);
     }
 
     .btn-secondary:hover {
-      background: #f5f7ff;
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-warning {
+      background: var(--warning);
+      color: white;
+    }
+
+    .btn-error {
+      background: var(--error);
+      color: white;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .btn-small {
+      padding: 8px 12px;
+      font-size: 10px;
     }
 
     .input-group {
-      margin-bottom: 12px;
+      margin-bottom: 16px;
     }
 
     .input-label {
-      display: block;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       font-size: 10px;
-      font-weight: 600;
-      color: #666;
-      margin-bottom: 6px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.8px;
+    }
+
+    .input-badge {
+      padding: 2px 6px;
+      background: var(--success);
+      color: white;
+      border-radius: 4px;
+      font-size: 9px;
+      font-weight: 700;
+    }
+
+    .input-wrapper {
+      position: relative;
     }
 
     .input {
       width: 100%;
-      padding: 8px;
-      border: 1px solid #e5e5e5;
-      border-radius: 4px;
+      padding: 10px 12px;
+      border: 2px solid var(--border);
+      border-radius: 6px;
       font-size: 11px;
       font-family: 'SF Mono', Monaco, monospace;
       transition: all 0.2s;
+      background: var(--bg-primary);
     }
 
     .input:focus {
       outline: none;
-      border-color: #667eea;
-      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+    }
+
+    .input-icon {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 14px;
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+
+    .input-icon:hover {
+      color: var(--primary);
     }
 
     .toggle-group {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 8px;
-      background: #f9fafb;
+      padding: 10px 12px;
+      background: var(--bg-primary);
       border-radius: 6px;
       margin-bottom: 8px;
+      border: 1px solid var(--border);
     }
 
     .toggle-label {
       font-size: 11px;
-      font-weight: 500;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
 
     .toggle {
       position: relative;
-      width: 36px;
-      height: 20px;
+      width: 44px;
+      height: 24px;
       background: #d1d5db;
-      border-radius: 10px;
+      border-radius: 12px;
       cursor: pointer;
       transition: background 0.3s;
     }
 
     .toggle.active {
-      background: #667eea;
+      background: var(--primary);
     }
 
     .toggle::after {
       content: '';
       position: absolute;
-      width: 16px;
-      height: 16px;
+      width: 20px;
+      height: 20px;
       background: white;
       border-radius: 50%;
       top: 2px;
       left: 2px;
       transition: left 0.3s;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     }
 
     .toggle.active::after {
-      left: 18px;
+      left: 22px;
     }
 
-    .loader {
+    .progress-container {
       display: none;
-      text-align: center;
-      padding: 24px;
-      background: #f9fafb;
+      margin-top: 16px;
+      padding: 16px;
+      background: var(--bg-secondary);
       border-radius: 8px;
-      margin-top: 12px;
+      border: 2px solid var(--primary);
     }
 
-    .loader.show {
+    .progress-container.show {
       display: block;
+      animation: slideIn 0.3s;
+    }
+
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .progress-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .progress-stats {
+      font-size: 10px;
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: #e5e7eb;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      border-radius: 4px;
+      transition: width 0.3s ease;
+      position: relative;
+    }
+
+    .progress-fill::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+      animation: shimmer 2s infinite;
+    }
+
+    @keyframes shimmer {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+
+    .progress-controls {
+      display: flex;
+      gap: 8px;
     }
 
     .spinner {
       border: 3px solid #f3f3f3;
-      border-top: 3px solid #667eea;
+      border-top: 3px solid var(--primary);
       border-radius: 50%;
       width: 40px;
       height: 40px;
@@ -301,12 +478,6 @@
       100% { transform: rotate(360deg); }
     }
 
-    .loader-text {
-      font-size: 11px;
-      color: #666;
-      font-weight: 500;
-    }
-
     .results {
       margin-top: 16px;
       display: none;
@@ -314,54 +485,59 @@
 
     .results.show {
       display: block;
+      animation: fadeIn 0.5s;
     }
 
     .results-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 12px;
-      padding: 8px;
-      background: #f9fafb;
-      border-radius: 6px;
+      margin-bottom: 16px;
+      padding: 12px;
+      background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+      border-radius: 8px;
+      border: 2px solid #bae6fd;
     }
 
     .results-title {
-      font-size: 12px;
-      font-weight: 600;
+      font-size: 13px;
+      font-weight: 700;
+      color: #0369a1;
     }
 
     .results-count {
-      font-size: 10px;
-      font-weight: 600;
-      padding: 3px 8px;
-      background: #667eea;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 6px 12px;
+      background: var(--primary);
       color: white;
-      border-radius: 12px;
+      border-radius: 16px;
     }
 
     .overlay-controls {
       display: flex;
       gap: 8px;
-      margin-bottom: 12px;
+      margin-bottom: 16px;
     }
 
     .element-group {
-      margin-bottom: 12px;
-      border: 1px solid #e5e5e5;
-      border-radius: 6px;
+      margin-bottom: 16px;
+      border: 2px solid var(--border);
+      border-radius: 8px;
       overflow: hidden;
       transition: all 0.2s;
+      background: var(--bg-primary);
     }
 
     .element-group:hover {
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      box-shadow: 0 4px 16px var(--shadow);
+      transform: translateY(-2px);
     }
 
     .element-header {
-      padding: 10px;
-      background: #f9fafb;
-      font-weight: 600;
+      padding: 12px;
+      background: var(--bg-secondary);
+      font-weight: 700;
       font-size: 11px;
       display: flex;
       align-items: center;
@@ -372,62 +548,65 @@
     .element-title {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
     }
 
     .element-icon {
-      width: 20px;
-      height: 20px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      border-radius: 4px;
+      width: 24px;
+      height: 24px;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+      border-radius: 6px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 10px;
+      font-size: 12px;
       color: white;
     }
 
     .jump-btn {
-      padding: 4px 8px;
+      padding: 6px 12px;
       background: white;
-      border: 1px solid #e5e5e5;
-      border-radius: 4px;
+      border: 2px solid var(--primary);
+      border-radius: 6px;
       font-size: 10px;
-      font-weight: 600;
+      font-weight: 700;
       cursor: pointer;
       transition: all 0.2s;
+      color: var(--primary);
+      text-transform: uppercase;
     }
 
     .jump-btn:hover {
-      background: #667eea;
+      background: var(--primary);
       color: white;
-      border-color: #667eea;
+      transform: translateX(2px);
     }
 
     .issue-item {
-      padding: 10px;
-      border-top: 1px solid #e5e5e5;
-      background: white;
+      padding: 12px;
+      border-top: 1px solid var(--border);
+      background: var(--bg-primary);
     }
 
     .issue-header {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
     }
 
     .issue-type {
-      font-weight: 600;
+      font-weight: 700;
       font-size: 11px;
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
+      flex-wrap: wrap;
     }
 
     .badge {
-      padding: 2px 6px;
-      border-radius: 3px;
+      padding: 3px 8px;
+      border-radius: 4px;
       font-size: 9px;
       font-weight: 700;
       text-transform: uppercase;
@@ -457,215 +636,357 @@
     .issue-values {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 6px;
-      margin-bottom: 8px;
-      font-size: 10px;
+      gap: 8px;
+      margin-bottom: 10px;
     }
 
     .value-box {
-      padding: 6px;
-      background: #f9fafb;
-      border-radius: 4px;
-      border: 1px solid #e5e5e5;
+      padding: 8px;
+      background: var(--bg-secondary);
+      border-radius: 6px;
+      border: 1px solid var(--border);
     }
 
     .value-label {
-      color: #999;
+      color: var(--text-secondary);
       font-size: 9px;
-      font-weight: 600;
+      font-weight: 700;
       text-transform: uppercase;
-      margin-bottom: 2px;
-      letter-spacing: 0.3px;
+      margin-bottom: 4px;
+      letter-spacing: 0.5px;
     }
 
     .value-text {
-      font-weight: 600;
-      color: #000;
+      font-weight: 700;
+      color: var(--text-primary);
       font-family: 'SF Mono', Monaco, monospace;
+      font-size: 11px;
     }
 
     .suggestion-box {
       background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-      border: 1px solid #bae6fd;
-      border-radius: 6px;
-      padding: 8px;
-      margin-top: 8px;
+      border: 2px solid #bae6fd;
+      border-radius: 8px;
+      padding: 10px;
+      margin-top: 10px;
     }
 
     .suggestion-title {
       font-size: 10px;
       font-weight: 700;
       color: #0369a1;
-      margin-bottom: 4px;
+      margin-bottom: 6px;
       display: flex;
       align-items: center;
-      gap: 4px;
+      gap: 6px;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.8px;
     }
 
     .suggestion-text {
       font-size: 11px;
       color: #075985;
-      margin-bottom: 8px;
-      line-height: 1.5;
-    }
-
-    .btn-small {
-      padding: 6px 10px;
-      font-size: 10px;
-      font-weight: 600;
-      border-radius: 4px;
-      border: none;
-      cursor: pointer;
-      transition: all 0.2s;
-      letter-spacing: 0.3px;
+      margin-bottom: 10px;
+      line-height: 1.6;
     }
 
     .btn-apply {
-      background: #667eea;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
       color: white;
+      padding: 8px 12px;
+      font-size: 10px;
+      font-weight: 700;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
       width: 100%;
+      text-transform: uppercase;
     }
 
     .btn-apply:hover {
-      background: #5568d3;
-      box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
     }
 
     .success-state {
       text-align: center;
-      padding: 32px 16px;
-      color: #166534;
+      padding: 40px 20px;
+      color: var(--success);
     }
 
     .success-icon {
-      font-size: 40px;
-      margin-bottom: 8px;
+      font-size: 48px;
+      margin-bottom: 12px;
+      animation: scaleIn 0.5s;
+    }
+
+    @keyframes scaleIn {
+      0% { transform: scale(0); }
+      50% { transform: scale(1.2); }
+      100% { transform: scale(1); }
     }
 
     .success-title {
-      font-size: 12px;
-      font-weight: 600;
-      margin-bottom: 4px;
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 6px;
     }
 
     .success-desc {
-      font-size: 10px;
-      color: #16a34a;
+      font-size: 11px;
+      color: #059669;
     }
 
     .help-text {
       font-size: 10px;
-      color: #999;
-      margin-top: 4px;
-      line-height: 1.4;
+      color: var(--text-secondary);
+      margin-top: 6px;
+      line-height: 1.5;
+    }
+
+    .help-box {
+      margin-top: 16px;
+      padding: 12px;
+      background: #fef3c7;
+      border-radius: 8px;
+      border: 2px solid #fbbf24;
+    }
+
+    .help-box-title {
+      font-size: 10px;
+      font-weight: 700;
+      color: #92400e;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .help-box ol {
+      font-size: 10px;
+      color: #92400e;
+      padding-left: 20px;
+      line-height: 1.8;
+    }
+
+    .help-box strong {
+      font-weight: 700;
     }
 
     .ai-indicator {
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      padding: 2px 6px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 3px 8px;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
       color: white;
-      border-radius: 3px;
+      border-radius: 4px;
       font-size: 9px;
       font-weight: 700;
-      letter-spacing: 0.3px;
+      letter-spacing: 0.5px;
     }
 
-    .debug-info {
-      margin-top: 16px;
-      padding: 8px;
-      background: #fef3c7;
-      border-radius: 4px;
+    .notification {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 700;
+      z-index: 10000;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+      animation: slideInRight 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    @keyframes slideInRight {
+      from {
+        opacity: 0;
+        transform: translateX(100px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .notification-success {
+      background: var(--success);
+      color: white;
+    }
+
+    .notification-error {
+      background: var(--error);
+      color: white;
+    }
+
+    .notification-warning {
+      background: var(--warning);
+      color: white;
+    }
+
+    .api-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: var(--bg-secondary);
+      border-radius: 6px;
+      margin-bottom: 12px;
       font-size: 10px;
-      font-family: monospace;
-      display: none;
     }
 
-    .debug-info.show {
-      display: block;
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #d1d5db;
+    }
+
+    .status-dot.active {
+      background: var(--success);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .tooltip {
+      position: relative;
+      display: inline-block;
+      cursor: help;
+    }
+
+    .tooltip:hover::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 6px 10px;
+      background: #1f2937;
+      color: white;
+      font-size: 10px;
+      border-radius: 6px;
+      white-space: nowrap;
+      z-index: 1000;
+      margin-bottom: 6px;
     }
   </style>
 </head>
 <body>
   <div class="header">
-    <h1>Frame Accessibility Audit</h1>
-    <p class="subtitle">WCAG 2.2 Compliance Checker with AI</p>
+    <div class="header-content">
+      <span class="header-icon">♿</span>
+      <h1>Accessibility Audit Pro</h1>
+    </div>
+    <p class="subtitle">WCAG 2.2 Compliance Analysis with AI Enhancement</p>
   </div>
 
   <div class="container">
     <div class="tabs">
-      <button class="tab active" data-tab="analyze">Analyze</button>
-      <button class="tab" data-tab="settings">Settings</button>
+      <button class="tab active" data-tab="analyze">
+        <span>🔍</span> Analyze
+      </button>
+      <button class="tab" data-tab="settings">
+        <span>⚙️</span> Settings
+      </button>
     </div>
 
     <!-- Analyze Tab -->
     <div class="tab-content active" id="analyze-tab">
       <div class="selection-status status-none" id="selectionStatus">
-        <span>📋</span>
+        <span style="font-size: 16px;">📋</span>
         <span>Select a frame to begin analysis</span>
       </div>
 
       <div class="section">
-        <div class="section-title">Checks to Perform</div>
+        <div class="section-title">
+          <span class="section-icon">✓</span>
+          Accessibility Checks
+        </div>
         <div class="checkbox-group">
           <div class="checkbox-item">
             <input type="checkbox" id="checkContrast" checked>
-            <label for="checkContrast">Color Contrast</label>
+            <label for="checkContrast">Color Contrast (AA/AAA)</label>
           </div>
           <div class="checkbox-item">
             <input type="checkbox" id="checkTextSpacing" checked>
-            <label for="checkTextSpacing">Text Spacing</label>
+            <label for="checkTextSpacing">Text Spacing (1.4.12)</label>
           </div>
           <div class="checkbox-item">
             <input type="checkbox" id="checkLineHeight" checked>
-            <label for="checkLineHeight">Line Height</label>
+            <label for="checkLineHeight">Line Height (1.4.12)</label>
           </div>
           <div class="checkbox-item">
             <input type="checkbox" id="checkParagraphSpacing" checked>
-            <label for="checkParagraphSpacing">Paragraph Spacing</label>
+            <label for="checkParagraphSpacing">Paragraph Spacing (1.4.12)</label>
           </div>
           <div class="checkbox-item">
             <input type="checkbox" id="checkNonText" checked>
-            <label for="checkNonText">Non-text Contrast</label>
+            <label for="checkNonText">Non-text Contrast (1.4.11)</label>
           </div>
         </div>
       </div>
 
       <div class="section">
+        <div class="section-title">
+          <span class="section-icon">👁️</span>
+          Visualization
+        </div>
         <div class="toggle-group">
-          <span class="toggle-label">Show Visual Overlay</span>
+          <span class="toggle-label">
+            <span>Show Visual Overlay</span>
+            <span class="tooltip" data-tooltip="Highlights issues on your frame">ⓘ</span>
+          </span>
           <div class="toggle active" id="overlayToggle"></div>
         </div>
       </div>
 
       <button class="btn btn-primary" id="analyzeBtn" disabled>
-        Analyze Frame
+        <span>▶</span>
+        <span>Start Analysis</span>
       </button>
 
-      <div class="loader" id="loader">
-        <div class="spinner"></div>
-        <p class="loader-text">Analyzing accessibility issues...</p>
-        <p class="loader-text" style="margin-top: 8px; font-size: 10px; opacity: 0.7;" id="loaderSubtext">This may take a few seconds</p>
+      <div class="progress-container" id="progressContainer">
+        <div class="progress-header">
+          <span class="progress-title">⏳ Analyzing...</span>
+          <span class="progress-stats" id="progressStats">0%</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+        </div>
+        <div class="progress-stats" id="elementStats" style="font-size: 10px; color: #666; text-align: center; margin-bottom: 12px;">
+          Processing elements...
+        </div>
+        <div class="progress-controls">
+          <button class="btn btn-warning btn-small" id="pauseBtn" style="flex: 1;">
+            <span>⏸</span> Pause
+          </button>
+          <button class="btn btn-error btn-small" id="cancelBtn" style="flex: 1;">
+            <span>✕</span> Cancel
+          </button>
+        </div>
       </div>
-
-      <div class="debug-info" id="debugInfo"></div>
 
       <div class="results" id="results">
         <div class="results-header">
-          <div class="results-title">Issues Found</div>
+          <div class="results-title">📊 Issues Found</div>
           <div class="results-count" id="issueCount">0</div>
         </div>
 
         <div class="overlay-controls" id="overlayControls" style="display: none;">
-          <button class="btn btn-secondary" id="toggleOverlayBtn" style="flex: 1;">
-            Toggle Overlay
+          <button class="btn btn-secondary btn-small" id="toggleOverlayBtn" style="flex: 1;">
+            👁️ Toggle Overlay
           </button>
-          <button class="btn btn-secondary" id="clearOverlayBtn" style="flex: 1;">
-            Clear Overlay
+          <button class="btn btn-secondary btn-small" id="clearOverlayBtn" style="flex: 1;">
+            🗑️ Clear Overlay
           </button>
         </div>
 
@@ -676,36 +997,61 @@
     <!-- Settings Tab -->
     <div class="tab-content" id="settings-tab">
       <div class="section">
-        <div class="section-title">AI Enhancement</div>
+        <div class="section-title">
+          <span class="section-icon">🤖</span>
+          AI Enhancement
+        </div>
+
+        <div class="api-status" id="apiStatus">
+          <span class="status-dot" id="statusDot"></span>
+          <span id="statusText">API Key not configured</span>
+        </div>
 
         <div class="toggle-group">
-          <span class="toggle-label">Use AI Suggestions</span>
+          <span class="toggle-label">
+            <span>Enable AI Suggestions</span>
+            <span class="tooltip" data-tooltip="Get smarter, context-aware fixes">ⓘ</span>
+          </span>
           <div class="toggle" id="aiToggle"></div>
         </div>
-        <p class="help-text">Get context-aware suggestions powered by DeepSeek AI</p>
+        <p class="help-text">Powered by DeepSeek AI - Get context-aware accessibility suggestions</p>
 
         <div class="input-group" style="margin-top: 16px;">
-          <label class="input-label">DeepSeek API Key</label>
-          <input
-            type="password"
-            class="input"
-            id="apiKeyInput"
-            placeholder="sk-xxxxxxxxxxxxxxxx"
-          >
-          <p class="help-text">Your API key is stored locally and never sent anywhere except DeepSeek.</p>
+          <label class="input-label">
+            <span>🔑 DeepSeek API Key</span>
+            <span class="input-badge" id="keyStatus" style="display: none;">SAVED</span>
+          </label>
+          <div class="input-wrapper">
+            <input
+              type="password"
+              class="input"
+              id="apiKeyInput"
+              placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxx"
+            >
+            <span class="input-icon" id="togglePassword">👁️</span>
+          </div>
+          <p class="help-text">🔒 Stored securely in Figma. Only sent to DeepSeek API.</p>
         </div>
 
-        <button class="btn btn-primary" id="saveSettingsBtn">
-          Save Settings
-        </button>
+        <div class="btn-group">
+          <button class="btn btn-primary btn-small" id="saveSettingsBtn" style="flex: 2;">
+            💾 Save Settings
+          </button>
+          <button class="btn btn-error btn-small" id="removeKeyBtn" style="flex: 1;">
+            🗑️ Remove
+          </button>
+        </div>
 
-        <div style="margin-top: 16px; padding: 12px; background: #f9fafb; border-radius: 6px;">
-          <p style="font-size: 10px; color: #666; margin-bottom: 8px; font-weight: 600;">How to get API key:</p>
-          <ol style="font-size: 10px; color: #666; padding-left: 16px; line-height: 1.6;">
+        <div class="help-box">
+          <div class="help-box-title">
+            💡 How to get your API key
+          </div>
+          <ol>
             <li>Visit <strong>platform.deepseek.com</strong></li>
-            <li>Sign up (free $5 credits)</li>
-            <li>Go to API Keys section</li>
-            <li>Create and copy your key</li>
+            <li>Sign up (Free $5 credits included)</li>
+            <li>Navigate to <strong>API Keys</strong> section</li>
+            <li>Click <strong>Create API Key</strong></li>
+            <li>Copy and paste your key above</li>
           </ol>
         </div>
       </div>
@@ -713,7 +1059,7 @@
   </div>
 
   <script>
-    console.log('🚀 Plugin UI loaded');
+    console.log('🚀 Accessibility Audit Pro - UI Loaded');
 
     // Elements
     const analyzeBtn = document.getElementById('analyzeBtn');
@@ -721,32 +1067,64 @@
     const results = document.getElementById('results');
     const issuesList = document.getElementById('issuesList');
     const issueCount = document.getElementById('issueCount');
-    const loader = document.getElementById('loader');
-    const loaderSubtext = document.getElementById('loaderSubtext');
+    const progressContainer = document.getElementById('progressContainer');
+    const progressFill = document.getElementById('progressFill');
+    const progressStats = document.getElementById('progressStats');
+    const elementStats = document.getElementById('elementStats');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const cancelBtn = document.getElementById('cancelBtn');
     const overlayToggle = document.getElementById('overlayToggle');
     const aiToggle = document.getElementById('aiToggle');
     const apiKeyInput = document.getElementById('apiKeyInput');
     const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+    const removeKeyBtn = document.getElementById('removeKeyBtn');
     const toggleOverlayBtn = document.getElementById('toggleOverlayBtn');
     const clearOverlayBtn = document.getElementById('clearOverlayBtn');
     const overlayControls = document.getElementById('overlayControls');
-    const debugInfo = document.getElementById('debugInfo');
+    const togglePassword = document.getElementById('togglePassword');
+    const apiStatus = document.getElementById('apiStatus');
+    const statusDot = document.getElementById('statusDot');
+    const statusText = document.getElementById('statusText');
+    const keyStatus = document.getElementById('keyStatus');
 
     let overlayVisible = true;
     let useAI = false;
     let showOverlay = true;
     let isAnalyzing = false;
+    let isPaused = false;
 
-    // Debug function
-    function debug(message) {
-      console.log('DEBUG:', message);
-      debugInfo.innerHTML += message + '<br>';
-      debugInfo.classList.add('show');
+    // Notifications
+    function showNotification(message, type = 'success') {
+      const notification = document.createElement('div');
+      notification.className = `notification notification-${type}`;
+      notification.innerHTML = `<span>${getIcon(type)}</span><span>${message}</span>`;
+      document.body.appendChild(notification);
+      setTimeout(() => notification.remove(), 3000);
     }
 
-    debug('Plugin initialized');
+    function getIcon(type) {
+      const icons = {
+        success: '✓',
+        error: '✕',
+        warning: '⚠'
+      };
+      return icons[type] || '•';
+    }
 
-    // Load settings from figma.clientStorage (via plugin code)
+    // Update API status
+    function updateAPIStatus(hasKey) {
+      if (hasKey) {
+        statusDot.classList.add('active');
+        statusText.textContent = 'API Key configured ✓';
+        keyStatus.style.display = 'inline-block';
+      } else {
+        statusDot.classList.remove('active');
+        statusText.textContent = 'API Key not configured';
+        keyStatus.style.display = 'none';
+      }
+    }
+
+    // Load settings
     parent.postMessage({ pluginMessage: { type: 'load-settings' } }, '*');
 
     // Tab switching
@@ -754,29 +1132,36 @@
       tab.addEventListener('click', () => {
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-
         tab.classList.add('active');
         document.getElementById(tab.dataset.tab + '-tab').classList.add('active');
       });
+    });
+
+    // Toggle password visibility
+    togglePassword.addEventListener('click', () => {
+      const type = apiKeyInput.type === 'password' ? 'text' : 'password';
+      apiKeyInput.type = type;
+      togglePassword.textContent = type === 'password' ? '👁️' : '🔒';
     });
 
     // Toggle handlers
     overlayToggle.addEventListener('click', () => {
       showOverlay = !showOverlay;
       overlayToggle.classList.toggle('active');
-      debug('Overlay toggle: ' + showOverlay);
     });
 
     aiToggle.addEventListener('click', () => {
       useAI = !useAI;
       aiToggle.classList.toggle('active');
-      debug('AI toggle: ' + useAI);
     });
 
     // Save settings
     saveSettingsBtn.addEventListener('click', () => {
       const apiKey = apiKeyInput.value.trim();
-      debug('Saving settings: AI=' + useAI + ', API Key=' + (apiKey ? 'SET' : 'NOT SET'));
+      if (!apiKey) {
+        showNotification('Please enter an API key', 'error');
+        return;
+      }
 
       parent.postMessage({
         pluginMessage: {
@@ -787,12 +1172,27 @@
       }, '*');
     });
 
+    // Remove API key
+    removeKeyBtn.addEventListener('click', () => {
+      if (confirm('Are you sure you want to remove your API key?')) {
+        apiKeyInput.value = '';
+        parent.postMessage({
+          pluginMessage: {
+            type: 'save-settings',
+            apiKey: '',
+            useAI: false
+          }
+        }, '*');
+        updateAPIStatus(false);
+        useAI = false;
+        aiToggle.classList.remove('active');
+        showNotification('API key removed', 'warning');
+      }
+    });
+
     // Analyze button
     analyzeBtn.addEventListener('click', () => {
-      if (isAnalyzing) {
-        debug('Already analyzing, please wait');
-        return;
-      }
+      if (isAnalyzing) return;
 
       const checks = {
         colorContrast: document.getElementById('checkContrast').checked,
@@ -802,38 +1202,48 @@
         nonTextContrast: document.getElementById('checkNonText').checked
       };
 
-      debug('Starting analysis...');
-      debug('Checks: ' + JSON.stringify(checks));
-      debug('Use AI: ' + useAI);
-
       isAnalyzing = true;
-      analyzeBtn.classList.add('loading');
-      analyzeBtn.textContent = 'Analyzing...';
+      isPaused = false;
       analyzeBtn.disabled = true;
+      analyzeBtn.innerHTML = '<span>⏳</span><span>Analyzing...</span>';
 
-      loader.classList.add('show');
+      progressContainer.classList.add('show');
       results.classList.remove('show');
-      debugInfo.classList.remove('show');
 
-      // Get API key from input or fallback to empty
       const apiKey = apiKeyInput.value.trim();
 
-      if (useAI) {
-        loaderSubtext.textContent = 'Analyzing with AI enhancement...';
-      } else {
-        loaderSubtext.textContent = 'This may take a few seconds';
-      }
-
-      debug('Sending analyze message to plugin');
       parent.postMessage({
         pluginMessage: {
           type: 'analyze',
           checks,
-          useAI: useAI,
+          useAI: useAI && apiKey,
           apiKey: apiKey || '',
           showOverlay: showOverlay
         }
       }, '*');
+    });
+
+    // Pause button
+    pauseBtn.addEventListener('click', () => {
+      if (isPaused) {
+        parent.postMessage({ pluginMessage: { type: 'resume-analysis' } }, '*');
+        pauseBtn.innerHTML = '<span>⏸</span> Pause';
+        isPaused = false;
+      } else {
+        parent.postMessage({ pluginMessage: { type: 'pause-analysis' } }, '*');
+        pauseBtn.innerHTML = '<span>▶</span> Resume';
+        isPaused = true;
+      }
+    });
+
+    // Cancel button
+    cancelBtn.addEventListener('click', () => {
+      parent.postMessage({ pluginMessage: { type: 'clear-overlays' } }, '*');
+      progressContainer.classList.remove('show');
+      isAnalyzing = false;
+      analyzeBtn.disabled = false;
+      analyzeBtn.innerHTML = '<span>▶</span><span>Start Analysis</span>';
+      showNotification('Analysis cancelled', 'warning');
     });
 
     // Overlay controls
@@ -842,12 +1252,13 @@
       parent.postMessage({
         pluginMessage: { type: 'toggle-overlay', visible: overlayVisible }
       }, '*');
-      toggleOverlayBtn.textContent = overlayVisible ? 'Hide Overlay' : 'Show Overlay';
+      toggleOverlayBtn.textContent = overlayVisible ? '🙈 Hide Overlay' : '👁️ Show Overlay';
     });
 
     clearOverlayBtn.addEventListener('click', () => {
       parent.postMessage({ pluginMessage: { type: 'clear-overlays' } }, '*');
       overlayControls.style.display = 'none';
+      showNotification('Overlay cleared', 'success');
     });
 
     // Messages from plugin
@@ -855,88 +1266,91 @@
       const msg = event.data.pluginMessage;
       if (!msg) return;
 
-      debug('Received message: ' + msg.type);
+      console.log('Message received:', msg.type);
 
       if (msg.type === 'selection-error') {
         selectionStatus.className = 'selection-status status-error';
-        selectionStatus.innerHTML = '<span>❌</span><span>' + msg.message + '</span>';
+        selectionStatus.innerHTML = `<span style="font-size: 16px;">❌</span><span>${msg.message}</span>`;
         analyzeBtn.disabled = true;
-        analyzeBtn.textContent = 'Analyze Frame';
         results.classList.remove('show');
       }
 
       if (msg.type === 'selection-valid') {
         selectionStatus.className = 'selection-status status-valid';
-        selectionStatus.innerHTML = '<span>✓</span><span>Frame selected: ' + msg.frameName + '</span>';
+        selectionStatus.innerHTML = `<span style="font-size: 16px;">✓</span><span><strong>Frame selected:</strong> ${msg.frameName}</span>`;
         analyzeBtn.disabled = false;
-        analyzeBtn.textContent = 'Analyze Frame';
-        debug('Frame selected: ' + msg.frameName);
+        analyzeBtn.innerHTML = '<span>▶</span><span>Start Analysis</span>';
       }
 
       if (msg.type === 'settings-loaded') {
-        debug('Settings loaded from plugin');
         if (msg.apiKey) {
           apiKeyInput.value = msg.apiKey;
+          updateAPIStatus(true);
         }
         if (msg.useAI) {
           useAI = msg.useAI;
           aiToggle.classList.add('active');
         }
-        debug('API Key: ' + (msg.apiKey ? 'LOADED' : 'NOT SET'));
-        debug('Use AI: ' + msg.useAI);
       }
 
       if (msg.type === 'settings-saved') {
-        const notification = document.createElement('div');
-        notification.style.cssText = 'position: fixed; top: 16px; right: 16px; padding: 12px 16px; background: #10b981; color: white; border-radius: 6px; font-size: 11px; font-weight: 600; z-index: 10000; box-shadow: 0 4px 8px rgba(0,0,0,0.2);';
-        notification.textContent = '✓ Settings saved!';
-        document.body.appendChild(notification);
-        setTimeout(() => notification.remove(), 2000);
-        debug('Settings saved successfully');
+        updateAPIStatus(apiKeyInput.value.trim() !== '');
+        showNotification('Settings saved successfully!', 'success');
+      }
+
+      if (msg.type === 'analysis-progress') {
+        const percent = msg.progress || 0;
+        progressFill.style.width = percent + '%';
+        progressStats.textContent = percent + '%';
+        elementStats.textContent = `Processing ${msg.current || 0} of ${msg.total || 0} elements`;
+      }
+
+      if (msg.type === 'analysis-paused') {
+        showNotification('Analysis paused', 'warning');
+      }
+
+      if (msg.type === 'analysis-resumed') {
+        showNotification('Analysis resumed', 'success');
+      }
+
+      if (msg.type === 'font-error') {
+        showNotification(`Font issue: ${msg.node}`, 'warning');
       }
 
       if (msg.type === 'analysis-complete') {
-        debug('Analysis complete! Issues: ' + msg.totalIssues);
-
         isAnalyzing = false;
-        loader.classList.remove('show');
+        progressContainer.classList.remove('show');
         results.classList.add('show');
-        analyzeBtn.classList.remove('loading');
-        analyzeBtn.textContent = 'Analyze Frame';
         analyzeBtn.disabled = false;
+        analyzeBtn.innerHTML = '<span>▶</span><span>Start Analysis</span>';
 
         if (msg.totalIssues === 0) {
           issuesList.innerHTML = `
             <div class="success-state">
               <div class="success-icon">✓</div>
-              <div class="success-title">All Checks Passed!</div>
-              <div class="success-desc">This frame meets WCAG 2.2 AA standards</div>
+              <div class="success-title">Perfect Accessibility!</div>
+              <div class="success-desc">This frame meets all WCAG 2.2 AA standards</div>
             </div>
           `;
           issueCount.textContent = '0';
           overlayControls.style.display = 'none';
+          showNotification('No issues found!', 'success');
         } else {
           displayIssues(msg.issues);
           issueCount.textContent = msg.totalIssues;
           if (showOverlay) {
             overlayControls.style.display = 'flex';
           }
+          showNotification(`Found ${msg.totalIssues} accessibility issues`, 'warning');
         }
       }
 
       if (msg.type === 'error') {
-        debug('ERROR: ' + msg.message);
         isAnalyzing = false;
-        loader.classList.remove('show');
-        analyzeBtn.classList.remove('loading');
-        analyzeBtn.textContent = 'Analyze Frame';
+        progressContainer.classList.remove('show');
         analyzeBtn.disabled = false;
-
-        const errorDiv = document.createElement('div');
-        errorDiv.style.cssText = 'padding: 12px; background: #fee2e2; border: 1px solid #fecaca; border-radius: 6px; color: #991b1b; font-size: 11px; margin-top: 12px;';
-        errorDiv.textContent = '❌ Error: ' + msg.message;
-        document.getElementById('analyze-tab').appendChild(errorDiv);
-        setTimeout(() => errorDiv.remove(), 5000);
+        analyzeBtn.innerHTML = '<span>▶</span><span>Start Analysis</span>';
+        showNotification(msg.message, 'error');
       }
     };
 
@@ -958,17 +1372,17 @@
                   ${issue.issueType}
                   <span class="badge badge-${issue.severity}">${issue.severity}</span>
                   <span class="badge badge-${issue.wcagLevel.toLowerCase()}">${issue.wcagLevel}</span>
-                  ${aiEnabled ? '<span class="ai-indicator">✨ AI</span>' : ''}
+                  ${aiEnabled ? '<span class="ai-indicator">✨ AI Enhanced</span>' : ''}
                 </div>
               </div>
 
               <div class="issue-values">
                 <div class="value-box">
-                  <div class="value-label">Current</div>
+                  <div class="value-label">Current Value</div>
                   <div class="value-text">${issue.currentValue}</div>
                 </div>
                 <div class="value-box">
-                  <div class="value-label">Required</div>
+                  <div class="value-label">Required Value</div>
                   <div class="value-text">${issue.requiredValue}</div>
                 </div>
               </div>
@@ -976,8 +1390,8 @@
               <div class="suggestion-box">
                 <div class="suggestion-title">💡 Suggested Fix</div>
                 <div class="suggestion-text">${issue.suggestion}</div>
-                <button class="btn-small btn-apply" onclick="applyFix(${issue.index}, '${fixData}')">
-                  Apply Fix
+                <button class="btn-apply" onclick="applyFix(${issue.index}, '${fixData}')">
+                  Apply Fix Automatically
                 </button>
               </div>
             </div>
@@ -988,10 +1402,10 @@
           <div class="element-header">
             <div class="element-title">
               <div class="element-icon">📐</div>
-              ${group.elementName}
+              <strong>${group.elementName}</strong>
             </div>
             <button class="jump-btn" onclick="jumpToElement('${group.elementId}')">
-              Jump to
+              Jump To
             </button>
           </div>
           ${issuesHTML}
@@ -1003,7 +1417,6 @@
 
     window.applyFix = (issueIndex, fixData) => {
       const fix = JSON.parse(fixData.replace(/&quot;/g, '"'));
-      debug('Applying fix: ' + issueIndex);
       parent.postMessage({
         pluginMessage: {
           type: 'apply-fix',
@@ -1011,10 +1424,10 @@
           fix: fix
         }
       }, '*');
+      showNotification('Fix applied! Re-analyze to verify.', 'success');
     };
 
     window.jumpToElement = (elementId) => {
-      debug('Jumping to element: ' + elementId);
       parent.postMessage({
         pluginMessage: { type: 'jump-to-element', elementId }
       }, '*');
