@@ -95,7 +95,7 @@ figma.ui.onmessage = async (msg) => {
       });
 
       if (currentIssues.length > 0 && msg.showOverlay) {
-        createOverlayFrame(selectedFrame, currentIssues);
+        await createOverlayFrame(selectedFrame, currentIssues);
       }
 
       figma.notify(`✓ Analysis complete! Found ${currentIssues.length} issues.`);
@@ -483,9 +483,14 @@ Return ONLY a JSON array with improved suggestions, one per issue, in the same o
   }
 }
 
-function createOverlayFrame(targetFrame: FrameNode, issues: AccessibilityIssue[]) {
+async function createOverlayFrame(targetFrame: FrameNode, issues: AccessibilityIssue[]) {
   const frameBounds = targetFrame.absoluteBoundingBox;
   if (!frameBounds) return;
+
+  console.log('Creating overlay for', issues.length, 'issues');
+
+  // Clear any existing overlays first
+  clearOverlays();
 
   overlayFrame = figma.createFrame();
   overlayFrame.name = '🔍 A11Y Overlay';
@@ -501,50 +506,104 @@ function createOverlayFrame(targetFrame: FrameNode, issues: AccessibilityIssue[]
     targetFrame.parent.insertChild(targetIndex + 1, overlayFrame);
   }
 
-  // Create highlight boxes for each issue - FIXED
-  issues.forEach(issue => {
-    if (issue.bounds && overlayFrame) {
-      const box = figma.createRectangle();
-      box.name = `Issue: ${issue.issueType}`;
-      
-      box.x = issue.bounds.x - frameBounds.x;
-      box.y = issue.bounds.y - frameBounds.y;
-      box.resize(issue.bounds.width, issue.bounds.height);
-      
-      const color = issue.severity === 'fail' 
-        ? { r: 0.95, g: 0.26, b: 0.21 }
-        : { r: 1, g: 0.76, b: 0.03 };
-      
-      box.fills = [];
-      box.strokes = [{ type: 'SOLID', color }];
-      box.strokeWeight = 2;
-      box.dashPattern = [5, 5];
-      box.opacity = 0.8;
-      
-      // Add label as separate text node - FIXED
-      const label = figma.createText();
-      label.characters = issue.severity === 'fail' ? '✕' : '⚠';
-      label.fontSize = 14;
-      label.fills = [{ type: 'SOLID', color }];
-      label.x = box.x - 10;
-      label.y = box.y - 18;
-      
-      overlayFrame.appendChild(box);
-      overlayFrame.appendChild(label);
+  // Load font once for all labels
+  try {
+    await figma.loadFontAsync({ family: 'Inter', style: 'Regular' });
+  } catch (error) {
+    console.error('Failed to load font for overlay labels:', error);
+    // Try fallback fonts
+    try {
+      await figma.loadFontAsync({ family: 'Roboto', style: 'Regular' });
+    } catch (fallbackError) {
+      try {
+        await figma.loadFontAsync({ family: 'Arial', style: 'Regular' });
+      } catch (finalError) {
+        console.error('All fonts failed, overlay will have no labels');
+        figma.notify('⚠ Overlay created but labels failed to load');
+      }
     }
-  });
+  }
 
-  figma.notify('✓ Overlay created! Toggle visibility from the plugin.');
+  // Create highlight boxes for each issue
+  let createdCount = 0;
+  for (const issue of issues) {
+    if (issue.bounds && overlayFrame) {
+      try {
+        const box = figma.createRectangle();
+        box.name = `Issue: ${issue.issueType}`;
+
+        box.x = issue.bounds.x - frameBounds.x;
+        box.y = issue.bounds.y - frameBounds.y;
+        box.resize(issue.bounds.width, issue.bounds.height);
+
+        const color = issue.severity === 'fail'
+          ? { r: 0.95, g: 0.26, b: 0.21 }
+          : { r: 1, g: 0.76, b: 0.03 };
+
+        box.fills = [];
+        box.strokes = [{ type: 'SOLID', color }];
+        box.strokeWeight = 3;
+        box.dashPattern = [8, 4];
+        box.opacity = 0.9;
+
+        overlayFrame.appendChild(box);
+
+        // Try to add label (may fail if font loading failed)
+        try {
+          const label = figma.createText();
+          label.characters = issue.severity === 'fail' ? '✕' : '⚠';
+          label.fontSize = 16;
+          label.fills = [{ type: 'SOLID', color }];
+          label.x = box.x - 12;
+          label.y = box.y - 22;
+          overlayFrame.appendChild(label);
+        } catch (labelError) {
+          console.warn('Failed to create label:', labelError);
+        }
+
+        createdCount++;
+      } catch (error) {
+        console.error('Failed to create overlay element:', error);
+      }
+    }
+  }
+
+  console.log('Overlay created with', createdCount, 'elements');
+  figma.notify(`✓ Overlay created with ${createdCount} highlighted issues!`);
 }
 
 function clearOverlays() {
-  if (overlayFrame) {
-    overlayFrame.remove();
-    overlayFrame = null;
+  try {
+    // Clear the tracked overlay frame
+    if (overlayFrame) {
+      try {
+        overlayFrame.remove();
+      } catch (error) {
+        console.warn('Failed to remove tracked overlay:', error);
+      }
+      overlayFrame = null;
+    }
+
+    // Find and remove any orphaned overlays
+    const orphanedOverlays = figma.currentPage.findAll(node => node.name === '🔍 A11Y Overlay');
+    console.log('Found', orphanedOverlays.length, 'orphaned overlays to clean up');
+
+    orphanedOverlays.forEach(node => {
+      try {
+        // Check if node still exists in the document before removing
+        if (node && node.parent) {
+          node.remove();
+        }
+      } catch (error) {
+        console.warn('Failed to remove orphaned overlay:', error);
+        // Node might have already been deleted, continue
+      }
+    });
+
+    console.log('Overlays cleared successfully');
+  } catch (error) {
+    console.error('Error in clearOverlays:', error);
   }
-  
-  const orphanedOverlays = figma.currentPage.findAll(node => node.name === '🔍 A11Y Overlay');
-  orphanedOverlays.forEach(node => node.remove());
 }
 
 function getTextColor(node: TextNode): RGB | null {
