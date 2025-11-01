@@ -43,32 +43,45 @@ figma.on('selectionchange', () => {
 
 figma.ui.onmessage = async (msg) => {
   if (msg.type === 'analyze') {
-    if (!selectedFrame) {
-      figma.ui.postMessage({ type: 'error', message: 'Please select a frame first' });
-      return;
-    }
+    try {
+      console.log('Analysis started');
 
-    const checks = msg.checks;
-    currentIssues = [];
+      if (!selectedFrame) {
+        figma.ui.postMessage({ type: 'error', message: 'Please select a frame first' });
+        return;
+      }
 
-    clearOverlays();
+      const checks = msg.checks;
+      currentIssues = [];
 
-    await analyzeFrame(selectedFrame, checks);
+      clearOverlays();
 
-    if (msg.useAI && msg.apiKey) {
-      await enhanceWithAI(currentIssues, msg.apiKey);
-    }
+      console.log('Analyzing frame:', selectedFrame.name);
+      await analyzeFrame(selectedFrame, checks);
+      console.log('Analysis complete. Issues found:', currentIssues.length);
 
-    const groupedIssues = groupIssuesByElement(currentIssues);
+      if (msg.useAI && msg.apiKey) {
+        console.log('AI enhancement enabled');
+        await enhanceWithAI(currentIssues, msg.apiKey);
+      }
 
-    figma.ui.postMessage({ 
-      type: 'analysis-complete', 
-      issues: groupedIssues,
-      totalIssues: currentIssues.length
-    });
+      const groupedIssues = groupIssuesByElement(currentIssues);
 
-    if (currentIssues.length > 0 && msg.showOverlay) {
-      createOverlayFrame(selectedFrame, currentIssues);
+      figma.ui.postMessage({
+        type: 'analysis-complete',
+        issues: groupedIssues,
+        totalIssues: currentIssues.length
+      });
+
+      if (currentIssues.length > 0 && msg.showOverlay) {
+        createOverlayFrame(selectedFrame, currentIssues);
+      }
+
+      figma.notify(`✓ Analysis complete! Found ${currentIssues.length} issues.`);
+    } catch (error) {
+      console.error('Analysis error:', error);
+      figma.ui.postMessage({ type: 'error', message: 'Analysis failed: ' + error });
+      figma.notify('❌ Analysis failed. Check console for details.');
     }
   }
 
@@ -345,6 +358,8 @@ function checkNonTextContrast(node: SceneNode) {
 
 async function enhanceWithAI(issues: AccessibilityIssue[], apiKey: string) {
   try {
+    console.log('Starting AI enhancement with DeepSeek...');
+
     const prompt = `You are an accessibility expert. Given these WCAG issues, provide better, context-aware suggestions in JSON format. Keep suggestions concise and actionable.
 
 Issues: ${JSON.stringify(issues.map(i => ({
@@ -370,16 +385,28 @@ Return ONLY a JSON array with improved suggestions, one per issue, in the same o
       })
     });
 
+    if (!response.ok) {
+      console.error('DeepSeek API error:', response.status, response.statusText);
+      figma.notify('AI enhancement failed. Using standard suggestions.');
+      return;
+    }
+
     const data = await response.json();
+    console.log('AI response received');
+
     const aiSuggestions = JSON.parse(data.choices[0].message.content);
-    
+
     issues.forEach((issue, index) => {
       if (aiSuggestions[index]) {
         issue.suggestion = aiSuggestions[index];
       }
     });
+
+    console.log('AI enhancement completed successfully');
+    figma.notify('✨ AI suggestions applied!');
   } catch (error) {
-    console.log('AI enhancement failed, using rule-based suggestions');
+    console.error('AI enhancement error:', error);
+    figma.notify('AI enhancement failed. Using standard suggestions.');
   }
 }
 
