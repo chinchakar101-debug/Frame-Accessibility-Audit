@@ -182,6 +182,12 @@
       box-shadow: none;
     }
 
+    .btn-primary.loading {
+      background: #9ca3af;
+      cursor: wait;
+      position: relative;
+    }
+
     .btn-secondary {
       background: white;
       color: #667eea;
@@ -265,6 +271,40 @@
 
     .toggle.active::after {
       left: 18px;
+    }
+
+    .loader {
+      display: none;
+      text-align: center;
+      padding: 24px;
+      background: #f9fafb;
+      border-radius: 8px;
+      margin-top: 12px;
+    }
+
+    .loader.show {
+      display: block;
+    }
+
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #667eea;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 12px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .loader-text {
+      font-size: 11px;
+      color: #666;
+      font-weight: 500;
     }
 
     .results {
@@ -515,78 +555,6 @@
       color: #16a34a;
     }
 
-    .preview-modal {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.6);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-      backdrop-filter: blur(4px);
-    }
-
-    .preview-modal.show {
-      display: flex;
-    }
-
-    .preview-content {
-      background: white;
-      border-radius: 8px;
-      padding: 16px;
-      max-width: 320px;
-      width: calc(100% - 32px);
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-    }
-
-    .preview-header {
-      font-size: 13px;
-      font-weight: 600;
-      margin-bottom: 12px;
-    }
-
-    .preview-change {
-      padding: 10px;
-      background: #f9fafb;
-      border-radius: 6px;
-      margin-bottom: 16px;
-      font-size: 11px;
-      line-height: 1.5;
-    }
-
-    .preview-buttons {
-      display: flex;
-      gap: 8px;
-    }
-
-    .loader {
-      display: none;
-      text-align: center;
-      padding: 24px;
-    }
-
-    .loader.show {
-      display: block;
-    }
-
-    .spinner {
-      border: 3px solid #f3f3f3;
-      border-top: 3px solid #667eea;
-      border-radius: 50%;
-      width: 32px;
-      height: 32px;
-      animation: spin 0.8s linear infinite;
-      margin: 0 auto 12px;
-    }
-
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
     .help-text {
       font-size: 10px;
       color: #999;
@@ -605,6 +573,20 @@
       font-size: 9px;
       font-weight: 700;
       letter-spacing: 0.3px;
+    }
+
+    .debug-info {
+      margin-top: 16px;
+      padding: 8px;
+      background: #fef3c7;
+      border-radius: 4px;
+      font-size: 10px;
+      font-family: monospace;
+      display: none;
+    }
+
+    .debug-info.show {
+      display: block;
     }
   </style>
 </head>
@@ -666,15 +648,18 @@
 
       <div class="loader" id="loader">
         <div class="spinner"></div>
-        <p>Analyzing accessibility...</p>
+        <p class="loader-text">Analyzing accessibility issues...</p>
+        <p class="loader-text" style="margin-top: 8px; font-size: 10px; opacity: 0.7;" id="loaderSubtext">This may take a few seconds</p>
       </div>
+
+      <div class="debug-info" id="debugInfo"></div>
 
       <div class="results" id="results">
         <div class="results-header">
           <div class="results-title">Issues Found</div>
           <div class="results-count" id="issueCount">0</div>
         </div>
-        
+
         <div class="overlay-controls" id="overlayControls" style="display: none;">
           <button class="btn btn-secondary" id="toggleOverlayBtn" style="flex: 1;">
             Toggle Overlay
@@ -692,7 +677,7 @@
     <div class="tab-content" id="settings-tab">
       <div class="section">
         <div class="section-title">AI Enhancement</div>
-        
+
         <div class="toggle-group">
           <span class="toggle-label">Use AI Suggestions</span>
           <div class="toggle" id="aiToggle"></div>
@@ -701,10 +686,10 @@
 
         <div class="input-group" style="margin-top: 16px;">
           <label class="input-label">DeepSeek API Key</label>
-          <input 
-            type="password" 
-            class="input" 
-            id="apiKeyInput" 
+          <input
+            type="password"
+            class="input"
+            id="apiKeyInput"
             placeholder="sk-xxxxxxxxxxxxxxxx"
           >
           <p class="help-text">Your API key is stored locally and never sent anywhere except DeepSeek.</p>
@@ -727,18 +712,9 @@
     </div>
   </div>
 
-  <div class="preview-modal" id="previewModal">
-    <div class="preview-content">
-      <div class="preview-header">Preview Changes</div>
-      <div class="preview-change" id="previewText"></div>
-      <div class="preview-buttons">
-        <button class="btn btn-secondary" id="cancelPreview" style="flex: 1;">Cancel</button>
-        <button class="btn btn-primary" id="confirmApply" style="flex: 1;">Apply</button>
-      </div>
-    </div>
-  </div>
-
   <script>
+    console.log('🚀 Plugin UI loaded');
+
     // Elements
     const analyzeBtn = document.getElementById('analyzeBtn');
     const selectionStatus = document.getElementById('selectionStatus');
@@ -746,10 +722,7 @@
     const issuesList = document.getElementById('issuesList');
     const issueCount = document.getElementById('issueCount');
     const loader = document.getElementById('loader');
-    const previewModal = document.getElementById('previewModal');
-    const previewText = document.getElementById('previewText');
-    const cancelPreview = document.getElementById('cancelPreview');
-    const confirmApply = document.getElementById('confirmApply');
+    const loaderSubtext = document.getElementById('loaderSubtext');
     const overlayToggle = document.getElementById('overlayToggle');
     const aiToggle = document.getElementById('aiToggle');
     const apiKeyInput = document.getElementById('apiKeyInput');
@@ -757,20 +730,23 @@
     const toggleOverlayBtn = document.getElementById('toggleOverlayBtn');
     const clearOverlayBtn = document.getElementById('clearOverlayBtn');
     const overlayControls = document.getElementById('overlayControls');
+    const debugInfo = document.getElementById('debugInfo');
 
-    let currentPreviewFix = null;
-    let currentPreviewIndex = null;
     let overlayVisible = true;
     let useAI = false;
     let showOverlay = true;
-    let apiKey = '';
+    let isAnalyzing = false;
 
-    // Load settings on startup
-    window.addEventListener('DOMContentLoaded', () => {
-      parent.postMessage({ pluginMessage: { type: 'load-settings' } }, '*');
-    });
+    // Debug function
+    function debug(message) {
+      console.log('DEBUG:', message);
+      debugInfo.innerHTML += message + '<br>';
+      debugInfo.classList.add('show');
+    }
 
-    // Trigger load settings immediately
+    debug('Plugin initialized');
+
+    // Load settings from figma.clientStorage (via plugin code)
     parent.postMessage({ pluginMessage: { type: 'load-settings' } }, '*');
 
     // Tab switching
@@ -778,7 +754,7 @@
       tab.addEventListener('click', () => {
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-        
+
         tab.classList.add('active');
         document.getElementById(tab.dataset.tab + '-tab').classList.add('active');
       });
@@ -788,29 +764,36 @@
     overlayToggle.addEventListener('click', () => {
       showOverlay = !showOverlay;
       overlayToggle.classList.toggle('active');
+      debug('Overlay toggle: ' + showOverlay);
     });
 
     aiToggle.addEventListener('click', () => {
       useAI = !useAI;
       aiToggle.classList.toggle('active');
+      debug('AI toggle: ' + useAI);
     });
 
     // Save settings
     saveSettingsBtn.addEventListener('click', () => {
       const apiKey = apiKeyInput.value.trim();
-      localStorage.setItem('deepseek_api_key', apiKey);
-      localStorage.setItem('use_ai', useAI);
-      
-      const notification = document.createElement('div');
-      notification.style.cssText = 'position: fixed; top: 16px; right: 16px; padding: 12px 16px; background: #10b981; color: white; border-radius: 6px; font-size: 11px; font-weight: 600; z-index: 10000; box-shadow: 0 4px 8px rgba(0,0,0,0.2);';
-      notification.textContent = '✓ Settings saved!';
-      document.body.appendChild(notification);
-      
-      setTimeout(() => notification.remove(), 2000);
+      debug('Saving settings: AI=' + useAI + ', API Key=' + (apiKey ? 'SET' : 'NOT SET'));
+
+      parent.postMessage({
+        pluginMessage: {
+          type: 'save-settings',
+          apiKey: apiKey,
+          useAI: useAI
+        }
+      }, '*');
     });
 
     // Analyze button
     analyzeBtn.addEventListener('click', () => {
+      if (isAnalyzing) {
+        debug('Already analyzing, please wait');
+        return;
+      }
+
       const checks = {
         colorContrast: document.getElementById('checkContrast').checked,
         textSpacing: document.getElementById('checkTextSpacing').checked,
@@ -819,27 +802,45 @@
         nonTextContrast: document.getElementById('checkNonText').checked
       };
 
-      const apiKey = localStorage.getItem('deepseek_api_key');
+      debug('Starting analysis...');
+      debug('Checks: ' + JSON.stringify(checks));
+      debug('Use AI: ' + useAI);
+
+      isAnalyzing = true;
+      analyzeBtn.classList.add('loading');
+      analyzeBtn.textContent = 'Analyzing...';
+      analyzeBtn.disabled = true;
 
       loader.classList.add('show');
       results.classList.remove('show');
-      
-      parent.postMessage({ 
-        pluginMessage: { 
-          type: 'analyze', 
+      debugInfo.classList.remove('show');
+
+      // Get API key from input or fallback to empty
+      const apiKey = apiKeyInput.value.trim();
+
+      if (useAI) {
+        loaderSubtext.textContent = 'Analyzing with AI enhancement...';
+      } else {
+        loaderSubtext.textContent = 'This may take a few seconds';
+      }
+
+      debug('Sending analyze message to plugin');
+      parent.postMessage({
+        pluginMessage: {
+          type: 'analyze',
           checks,
-          useAI: useAI && apiKey,
-          apiKey: apiKey,
+          useAI: useAI,
+          apiKey: apiKey || '',
           showOverlay: showOverlay
-        } 
+        }
       }, '*');
     });
 
     // Overlay controls
     toggleOverlayBtn.addEventListener('click', () => {
       overlayVisible = !overlayVisible;
-      parent.postMessage({ 
-        pluginMessage: { type: 'toggle-overlay', visible: overlayVisible } 
+      parent.postMessage({
+        pluginMessage: { type: 'toggle-overlay', visible: overlayVisible }
       }, '*');
       toggleOverlayBtn.textContent = overlayVisible ? 'Hide Overlay' : 'Show Overlay';
     });
@@ -852,11 +853,15 @@
     // Messages from plugin
     window.onmessage = (event) => {
       const msg = event.data.pluginMessage;
+      if (!msg) return;
+
+      debug('Received message: ' + msg.type);
 
       if (msg.type === 'selection-error') {
         selectionStatus.className = 'selection-status status-error';
         selectionStatus.innerHTML = '<span>❌</span><span>' + msg.message + '</span>';
         analyzeBtn.disabled = true;
+        analyzeBtn.textContent = 'Analyze Frame';
         results.classList.remove('show');
       }
 
@@ -864,12 +869,42 @@
         selectionStatus.className = 'selection-status status-valid';
         selectionStatus.innerHTML = '<span>✓</span><span>Frame selected: ' + msg.frameName + '</span>';
         analyzeBtn.disabled = false;
+        analyzeBtn.textContent = 'Analyze Frame';
+        debug('Frame selected: ' + msg.frameName);
+      }
+
+      if (msg.type === 'settings-loaded') {
+        debug('Settings loaded from plugin');
+        if (msg.apiKey) {
+          apiKeyInput.value = msg.apiKey;
+        }
+        if (msg.useAI) {
+          useAI = msg.useAI;
+          aiToggle.classList.add('active');
+        }
+        debug('API Key: ' + (msg.apiKey ? 'LOADED' : 'NOT SET'));
+        debug('Use AI: ' + msg.useAI);
+      }
+
+      if (msg.type === 'settings-saved') {
+        const notification = document.createElement('div');
+        notification.style.cssText = 'position: fixed; top: 16px; right: 16px; padding: 12px 16px; background: #10b981; color: white; border-radius: 6px; font-size: 11px; font-weight: 600; z-index: 10000; box-shadow: 0 4px 8px rgba(0,0,0,0.2);';
+        notification.textContent = '✓ Settings saved!';
+        document.body.appendChild(notification);
+        setTimeout(() => notification.remove(), 2000);
+        debug('Settings saved successfully');
       }
 
       if (msg.type === 'analysis-complete') {
+        debug('Analysis complete! Issues: ' + msg.totalIssues);
+
+        isAnalyzing = false;
         loader.classList.remove('show');
         results.classList.add('show');
-        
+        analyzeBtn.classList.remove('loading');
+        analyzeBtn.textContent = 'Analyze Frame';
+        analyzeBtn.disabled = false;
+
         if (msg.totalIssues === 0) {
           issuesList.innerHTML = `
             <div class="success-state">
@@ -889,29 +924,30 @@
         }
       }
 
-      if (msg.type === 'fix-applied') {
-        previewModal.classList.remove('show');
-        const notification = document.createElement('div');
-        notification.style.cssText = 'position: fixed; top: 16px; right: 16px; padding: 12px 16px; background: #10b981; color: white; border-radius: 6px; font-size: 11px; font-weight: 600; z-index: 10000; box-shadow: 0 4px 8px rgba(0,0,0,0.2);';
-        notification.textContent = '✓ Fix applied! Re-analyze to update.';
-        document.body.appendChild(notification);
-        setTimeout(() => notification.remove(), 3000);
-      }
-
       if (msg.type === 'error') {
-        alert('Error: ' + msg.message);
+        debug('ERROR: ' + msg.message);
+        isAnalyzing = false;
         loader.classList.remove('show');
+        analyzeBtn.classList.remove('loading');
+        analyzeBtn.textContent = 'Analyze Frame';
+        analyzeBtn.disabled = false;
+
+        const errorDiv = document.createElement('div');
+        errorDiv.style.cssText = 'padding: 12px; background: #fee2e2; border: 1px solid #fecaca; border-radius: 6px; color: #991b1b; font-size: 11px; margin-top: 12px;';
+        errorDiv.textContent = '❌ Error: ' + msg.message;
+        document.getElementById('analyze-tab').appendChild(errorDiv);
+        setTimeout(() => errorDiv.remove(), 5000);
       }
     };
 
     function displayIssues(groupedIssues) {
       issuesList.innerHTML = '';
-      const aiEnabled = useAI && localStorage.getItem('deepseek_api_key');
-      
+      const aiEnabled = useAI && apiKeyInput.value.trim();
+
       groupedIssues.forEach(group => {
         const groupEl = document.createElement('div');
         groupEl.className = 'element-group';
-        
+
         let issuesHTML = '';
         group.issues.forEach(issue => {
           const fixData = JSON.stringify(issue.suggestedFix).replace(/"/g, '&quot;');
@@ -925,7 +961,7 @@
                   ${aiEnabled ? '<span class="ai-indicator">✨ AI</span>' : ''}
                 </div>
               </div>
-              
+
               <div class="issue-values">
                 <div class="value-box">
                   <div class="value-label">Current</div>
@@ -940,14 +976,14 @@
               <div class="suggestion-box">
                 <div class="suggestion-title">💡 Suggested Fix</div>
                 <div class="suggestion-text">${issue.suggestion}</div>
-                <button class="btn-small btn-apply" onclick="showPreview(${issue.index}, '${escapeHtml(issue.suggestion)}', '${fixData}')">
-                    Apply Fix
-                  </button>
+                <button class="btn-small btn-apply" onclick="applyFix(${issue.index}, '${fixData}')">
+                  Apply Fix
+                </button>
               </div>
             </div>
           `;
         });
-        
+
         groupEl.innerHTML = `
           <div class="element-header">
             <div class="element-title">
@@ -960,56 +996,29 @@
           </div>
           ${issuesHTML}
         `;
-        
+
         issuesList.appendChild(groupEl);
       });
     }
 
-    function escapeHtml(text) {
-      const map = {
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#039;'
-      };
-      return text.replace(/[&<>"']/g, m => map[m]);
-    }
-
-    window.showPreview = (issueIndex, suggestion, fixData) => {
-      currentPreviewIndex = issueIndex;
-      currentPreviewFix = JSON.parse(fixData.replace(/&quot;/g, '"'));
-      previewText.textContent = suggestion;
-      previewModal.classList.add('show');
-    };
-
-    window.jumpToElement = (elementId) => {
-      parent.postMessage({ 
-        pluginMessage: { type: 'jump-to-element', elementId } 
+    window.applyFix = (issueIndex, fixData) => {
+      const fix = JSON.parse(fixData.replace(/&quot;/g, '"'));
+      debug('Applying fix: ' + issueIndex);
+      parent.postMessage({
+        pluginMessage: {
+          type: 'apply-fix',
+          issueIndex: issueIndex,
+          fix: fix
+        }
       }, '*');
     };
 
-    cancelPreview.addEventListener('click', () => {
-      previewModal.classList.remove('show');
-      currentPreviewFix = null;
-      currentPreviewIndex = null;
-    });
-
-    confirmApply.addEventListener('click', () => {
-      if (currentPreviewFix !== null && currentPreviewIndex !== null) {
-        parent.postMessage({ 
-          pluginMessage: { 
-            type: 'apply-fix', 
-            issueIndex: currentPreviewIndex,
-            fix: currentPreviewFix
-          } 
-        }, '*');
-      }
-    });
-
-    window.addEventListener('beforeunload', () => {
-      parent.postMessage({ pluginMessage: { type: 'clear-overlays' } }, '*');
-    });
+    window.jumpToElement = (elementId) => {
+      debug('Jumping to element: ' + elementId);
+      parent.postMessage({
+        pluginMessage: { type: 'jump-to-element', elementId }
+      }, '*');
+    };
   </script>
 </body>
 </html>
