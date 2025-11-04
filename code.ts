@@ -1,5 +1,18 @@
-// code.ts - Professional Accessibility Plugin with Advanced Features
+// code.ts - Professional Accessibility Plugin with Advanced Features & Caching
 figma.showUI(__html__, { width: 380, height: 750, themeColors: true });
+
+const PLUGIN_VERSION = '1.0.0';
+const CACHE_DURATION = 7 * 24 * 60 * 60 * 1000;
+const PLUGIN_DATA_KEY = 'a11y-analysis';
+
+const analysisCache = new Map<string, CachedAnalysis>();
+
+interface CachedAnalysis {
+  timestamp: number;
+  version: string;
+  contentHash: string;
+  results: AccessibilityIssue[];
+}
 
 interface AccessibilityIssue {
   elementId: string;
@@ -26,9 +39,167 @@ let isPaused = false;
 let analysisProgress = 0;
 let totalElements = 0;
 
+function getCachedAnalysis(frame: FrameNode): CachedAnalysis | null {
+  let cached = analysisCache.get(frame.id);
+
+  if (!cached) {
+    const pluginData = frame.getPluginData(PLUGIN_DATA_KEY);
+    if (pluginData) {
+      try {
+        cached = JSON.parse(pluginData);
+        if (cached) {
+          analysisCache.set(frame.id, cached);
+        }
+      } catch (error) {
+        console.error('Failed to parse cached data:', error);
+        return null;
+      }
+    }
+  }
+
+  if (!cached) return null;
+
+  if (isCacheValid(frame, cached)) {
+    console.log('✓ Using valid cache for:', frame.name);
+    return cached;
+  }
+
+  console.log('✗ Cache invalid for:', frame.name);
+  clearFrameCache(frame);
+  return null;
+}
+
+function setCachedAnalysis(frame: FrameNode, results: AccessibilityIssue[]): void {
+  const cached: CachedAnalysis = {
+    timestamp: Date.now(),
+    version: PLUGIN_VERSION,
+    contentHash: generateContentHash(frame),
+    results: results
+  };
+
+  analysisCache.set(frame.id, cached);
+
+  try {
+    frame.setPluginData(PLUGIN_DATA_KEY, JSON.stringify(cached));
+    console.log('✓ Cached analysis for:', frame.name, 'ID:', frame.id);
+  } catch (error) {
+    console.error('Failed to save cache:', error);
+  }
+}
+
+function isCacheValid(frame: FrameNode, cached: CachedAnalysis): boolean {
+  if (isExpired(cached.timestamp)) {
+    return false;
+  }
+
+  if (cached.version !== PLUGIN_VERSION) {
+    return false;
+  }
+
+  const currentHash = generateContentHash(frame);
+  if (currentHash !== cached.contentHash) {
+    return false;
+  }
+
+  return true;
+}
+
+function isExpired(timestamp: number): boolean {
+  return (Date.now() - timestamp) > CACHE_DURATION;
+}
+
+function clearFrameCache(frame: FrameNode): void {
+  analysisCache.delete(frame.id);
+  frame.setPluginData(PLUGIN_DATA_KEY, '');
+}
+
+function clearAllCaches(): void {
+  analysisCache.clear();
+
+  const allFrames = figma.currentPage.findAll(node => node.type === 'FRAME') as FrameNode[];
+  allFrames.forEach(frame => {
+    if (frame.getPluginData(PLUGIN_DATA_KEY)) {
+      frame.setPluginData(PLUGIN_DATA_KEY, '');
+    }
+  });
+
+  figma.notify('✓ All caches cleared');
+}
+
+function generateContentHash(frame: FrameNode): string {
+  const fingerprint = {
+    childCount: frame.children.length,
+    texts: collectTextContent(frame),
+    colors: collectColors(frame),
+  };
+
+  return simpleHash(JSON.stringify(fingerprint));
+}
+
+function collectTextContent(node: SceneNode): string[] {
+  const texts: string[] = [];
+
+  function walk(n: SceneNode) {
+    if (n.type === 'TEXT') {
+      texts.push(n.characters);
+    }
+    if ('children' in n) {
+      n.children.forEach(child => walk(child));
+    }
+  }
+
+  walk(node);
+  return texts;
+}
+
+function collectColors(node: SceneNode): string[] {
+  const colors: string[] = [];
+
+  function walk(n: SceneNode) {
+    if (n.type === 'TEXT') {
+      const fills = n.fills;
+      if (Array.isArray(fills)) {
+        fills.forEach(fill => {
+          if (fill.type === 'SOLID') {
+            colors.push(`${fill.color.r},${fill.color.g},${fill.color.b}`);
+          }
+        });
+      }
+    }
+    if ('children' in n) {
+      n.children.forEach(child => walk(child));
+    }
+  }
+
+  walk(node);
+  return colors;
+}
+
+function simpleHash(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return Math.abs(hash).toString(36);
+}
+
+function getCacheAge(timestamp: number): string {
+  const ageMs = Date.now() - timestamp;
+  const ageMinutes = Math.floor(ageMs / 60000);
+  const ageHours = Math.floor(ageMinutes / 60);
+  const ageDays = Math.floor(ageHours / 24);
+
+  if (ageDays > 0) return `${ageDays}d ago`;
+  if (ageHours > 0) return `${ageHours}h ago`;
+  if (ageMinutes > 0) return `${ageMinutes}m ago`;
+  return 'just now';
+}
+
 figma.on('selectionchange', () => {
   const selection = figma.currentPage.selection;
-  
+
   if (selection.length === 0) {
     figma.ui.postMessage({ type: 'selection-error', message: 'No frame selected' });
     selectedFrame = null;
@@ -38,6 +209,14 @@ figma.on('selectionchange', () => {
   } else if (selection[0].type === 'FRAME') {
     selectedFrame = selection[0] as FrameNode;
     figma.ui.postMessage({ type: 'selection-valid', frameName: selectedFrame.name });
+
+    const cached = getCachedAnalysis(selectedFrame);
+    if (cached) {
+      figma.ui.postMessage({
+        type: 'cache-available',
+        age: getCacheAge(cached.timestamp)
+      });
+    }
   } else {
     figma.ui.postMessage({ type: 'selection-error', message: 'Please select a frame (not a single element)' });
     selectedFrame = null;
@@ -68,12 +247,37 @@ figma.ui.onmessage = async (msg) => {
         return;
       }
 
+      const forceReanalyze = msg.forceReanalyze || false;
+
+      if (!forceReanalyze) {
+        const cached = getCachedAnalysis(selectedFrame);
+        if (cached) {
+          console.log('⚡ Using cached results');
+          const groupedIssues = groupIssuesByElement(cached.results);
+          figma.ui.postMessage({
+            type: 'analysis-complete',
+            issues: groupedIssues,
+            totalIssues: cached.results.length,
+            fromCache: true,
+            cacheAge: getCacheAge(cached.timestamp)
+          });
+
+          if (cached.results.length > 0 && msg.showOverlay) {
+            currentIssues = cached.results;
+            await createOverlayFrame(selectedFrame, cached.results);
+          }
+
+          figma.notify(`⚡ Loaded from cache (${getCacheAge(cached.timestamp)})`);
+          return;
+        }
+      }
+
+      console.log('Running fresh analysis');
       const checks = msg.checks;
       currentIssues = [];
 
       clearOverlays();
 
-      // Count total elements first
       totalElements = countElements(selectedFrame);
       figma.ui.postMessage({ type: 'analysis-progress', progress: 0, total: totalElements });
 
@@ -86,12 +290,15 @@ figma.ui.onmessage = async (msg) => {
         await enhanceWithAI(currentIssues, msg.apiKey);
       }
 
+      setCachedAnalysis(selectedFrame, currentIssues);
+
       const groupedIssues = groupIssuesByElement(currentIssues);
 
       figma.ui.postMessage({
         type: 'analysis-complete',
         issues: groupedIssues,
-        totalIssues: currentIssues.length
+        totalIssues: currentIssues.length,
+        fromCache: false
       });
 
       if (currentIssues.length > 0 && msg.showOverlay) {
@@ -128,7 +335,29 @@ figma.ui.onmessage = async (msg) => {
     }
   }
 
-  // Handle settings storage
+  if (msg.type === 'clear-cache') {
+    if (selectedFrame) {
+      clearFrameCache(selectedFrame);
+      figma.notify('✓ Cache cleared for this frame');
+      figma.ui.postMessage({ type: 'cache-cleared' });
+    }
+  }
+
+  if (msg.type === 'clear-all-caches') {
+    clearAllCaches();
+  }
+
+  if (msg.type === 'get-cache-info') {
+    if (selectedFrame) {
+      const cached = getCachedAnalysis(selectedFrame);
+      figma.ui.postMessage({
+        type: 'cache-info',
+        hasCached: !!cached,
+        age: cached ? getCacheAge(cached.timestamp) : null
+      });
+    }
+  }
+
   if (msg.type === 'save-settings') {
     await figma.clientStorage.setAsync('deepseek_api_key', msg.apiKey);
     await figma.clientStorage.setAsync('use_ai', msg.useAI);
@@ -138,8 +367,8 @@ figma.ui.onmessage = async (msg) => {
   if (msg.type === 'load-settings') {
     const apiKey = await figma.clientStorage.getAsync('deepseek_api_key');
     const useAI = await figma.clientStorage.getAsync('use_ai');
-    figma.ui.postMessage({ 
-      type: 'settings-loaded', 
+    figma.ui.postMessage({
+      type: 'settings-loaded',
       apiKey: apiKey || '',
       useAI: useAI || false
     });

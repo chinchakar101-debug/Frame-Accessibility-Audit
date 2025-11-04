@@ -878,6 +878,74 @@
       z-index: 1000;
       margin-bottom: 6px;
     }
+
+    .cache-status {
+      padding: 10px 12px;
+      background: #eff6ff;
+      border: 2px solid #bfdbfe;
+      border-radius: 8px;
+      font-size: 11px;
+      margin-bottom: 12px;
+      display: none;
+      align-items: center;
+      gap: 8px;
+      animation: slideIn 0.3s;
+    }
+
+    .cache-status.show {
+      display: flex;
+    }
+
+    .cache-icon {
+      font-size: 14px;
+    }
+
+    .cache-status span {
+      flex: 1;
+      color: #1e40af;
+      font-weight: 600;
+    }
+
+    .btn-link {
+      background: none;
+      border: none;
+      color: var(--primary);
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: underline;
+      padding: 0;
+      transition: color 0.2s;
+    }
+
+    .btn-link:hover {
+      color: var(--primary-dark);
+    }
+
+    .cache-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      color: #1e40af;
+      border-radius: 4px;
+      font-size: 9px;
+      font-weight: 700;
+      margin-left: 4px;
+    }
+
+    .results-header.cached {
+      background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+      border-color: #bfdbfe;
+    }
+
+    .btn-group-actions {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
   </style>
 </head>
 <body>
@@ -949,10 +1017,21 @@
         </div>
       </div>
 
-      <button class="btn btn-primary" id="analyzeBtn" disabled>
-        <span>▶</span>
-        <span>Start Analysis</span>
-      </button>
+      <div class="cache-status" id="cacheStatus">
+        <span class="cache-icon">💾</span>
+        <span id="cacheText">Cached results available</span>
+        <button class="btn-link" id="reanalyzeBtn">Re-analyze</button>
+      </div>
+
+      <div class="btn-group-actions">
+        <button class="btn btn-primary" id="analyzeBtn" disabled style="flex: 1;">
+          <span>▶</span>
+          <span>Start Analysis</span>
+        </button>
+        <button class="btn btn-secondary btn-small" id="clearCacheBtn" disabled title="Clear cache for this frame">
+          🗑️
+        </button>
+      </div>
 
       <div class="progress-container" id="progressContainer">
         <div class="progress-header">
@@ -1086,6 +1165,10 @@
     const statusDot = document.getElementById('statusDot');
     const statusText = document.getElementById('statusText');
     const keyStatus = document.getElementById('keyStatus');
+    const cacheStatus = document.getElementById('cacheStatus');
+    const cacheText = document.getElementById('cacheText');
+    const reanalyzeBtn = document.getElementById('reanalyzeBtn');
+    const clearCacheBtn = document.getElementById('clearCacheBtn');
 
     let overlayVisible = true;
     let useAI = false;
@@ -1218,9 +1301,52 @@
           checks,
           useAI: useAI && apiKey,
           apiKey: apiKey || '',
-          showOverlay: showOverlay
+          showOverlay: showOverlay,
+          forceReanalyze: false
         }
       }, '*');
+    });
+
+    // Force re-analyze button
+    reanalyzeBtn.addEventListener('click', () => {
+      if (isAnalyzing) return;
+
+      const checks = {
+        colorContrast: document.getElementById('checkContrast').checked,
+        textSpacing: document.getElementById('checkTextSpacing').checked,
+        lineHeight: document.getElementById('checkLineHeight').checked,
+        paragraphSpacing: document.getElementById('checkParagraphSpacing').checked,
+        nonTextContrast: document.getElementById('checkNonText').checked
+      };
+
+      isAnalyzing = true;
+      isPaused = false;
+      analyzeBtn.disabled = true;
+      analyzeBtn.innerHTML = '<span>⌛</span><span>Analyzing...</span>';
+
+      progressContainer.classList.add('show');
+      results.classList.remove('show');
+      cacheStatus.classList.remove('show');
+
+      const apiKey = apiKeyInput.value.trim();
+
+      parent.postMessage({
+        pluginMessage: {
+          type: 'analyze',
+          checks,
+          useAI: useAI && apiKey,
+          apiKey: apiKey || '',
+          showOverlay: showOverlay,
+          forceReanalyze: true
+        }
+      }, '*');
+
+      showNotification('Running fresh analysis...', 'success');
+    });
+
+    // Clear cache button
+    clearCacheBtn.addEventListener('click', () => {
+      parent.postMessage({ pluginMessage: { type: 'clear-cache' } }, '*');
     });
 
     // Pause button
@@ -1279,7 +1405,28 @@
         selectionStatus.className = 'selection-status status-valid';
         selectionStatus.innerHTML = `<span style="font-size: 16px;">✓</span><span><strong>Frame selected:</strong> ${msg.frameName}</span>`;
         analyzeBtn.disabled = false;
+        clearCacheBtn.disabled = false;
         analyzeBtn.innerHTML = '<span>▶</span><span>Start Analysis</span>';
+        parent.postMessage({ pluginMessage: { type: 'get-cache-info' } }, '*');
+      }
+
+      if (msg.type === 'cache-available') {
+        cacheStatus.classList.add('show');
+        cacheText.textContent = `Analysis from ${msg.age}`;
+      }
+
+      if (msg.type === 'cache-info') {
+        if (msg.hasCached) {
+          cacheStatus.classList.add('show');
+          cacheText.textContent = `Analysis from ${msg.age}`;
+        } else {
+          cacheStatus.classList.remove('show');
+        }
+      }
+
+      if (msg.type === 'cache-cleared') {
+        cacheStatus.classList.remove('show');
+        showNotification('Cache cleared', 'success');
       }
 
       if (msg.type === 'settings-loaded') {
@@ -1324,6 +1471,16 @@
         analyzeBtn.disabled = false;
         analyzeBtn.innerHTML = '<span>▶</span><span>Start Analysis</span>';
 
+        const resultsHeader = document.querySelector('.results-header');
+
+        if (msg.fromCache) {
+          resultsHeader.classList.add('cached');
+          issueCount.innerHTML = `${msg.totalIssues} <span class="cache-badge">💾 ${msg.cacheAge}</span>`;
+        } else {
+          resultsHeader.classList.remove('cached');
+          issueCount.textContent = msg.totalIssues;
+        }
+
         if (msg.totalIssues === 0) {
           issuesList.innerHTML = `
             <div class="success-state">
@@ -1332,16 +1489,15 @@
               <div class="success-desc">This frame meets all WCAG 2.2 AA standards</div>
             </div>
           `;
-          issueCount.textContent = '0';
           overlayControls.style.display = 'none';
           showNotification('No issues found!', 'success');
         } else {
           displayIssues(msg.issues);
-          issueCount.textContent = msg.totalIssues;
           if (showOverlay) {
             overlayControls.style.display = 'flex';
           }
-          showNotification(`Found ${msg.totalIssues} accessibility issues`, 'warning');
+          const notifMsg = msg.fromCache ? `Loaded ${msg.totalIssues} issues from cache` : `Found ${msg.totalIssues} accessibility issues`;
+          showNotification(notifMsg, msg.fromCache ? 'success' : 'warning');
         }
       }
 
