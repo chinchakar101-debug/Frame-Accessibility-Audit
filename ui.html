@@ -954,16 +954,13 @@
       <span class="header-icon">♿</span>
       <h1>Accessibility Audit Pro</h1>
     </div>
-    <p class="subtitle">WCAG 2.2 Compliance Analysis with AI Enhancement</p>
+    <p class="subtitle">WCAG 2.2 Compliance Analysis</p>
   </div>
 
   <div class="container">
     <div class="tabs">
       <button class="tab active" data-tab="analyze">
         <span>🔍</span> Analyze
-      </button>
-      <button class="tab" data-tab="settings">
-        <span>⚙️</span> Settings
       </button>
     </div>
 
@@ -1073,68 +1070,6 @@
       </div>
     </div>
 
-    <!-- Settings Tab -->
-    <div class="tab-content" id="settings-tab">
-      <div class="section">
-        <div class="section-title">
-          <span class="section-icon">🤖</span>
-          AI Enhancement
-        </div>
-
-        <div class="api-status" id="apiStatus">
-          <span class="status-dot" id="statusDot"></span>
-          <span id="statusText">API Key not configured</span>
-        </div>
-
-        <div class="toggle-group">
-          <span class="toggle-label">
-            <span>Enable AI Suggestions</span>
-            <span class="tooltip" data-tooltip="Get smarter, context-aware fixes">ⓘ</span>
-          </span>
-          <div class="toggle" id="aiToggle"></div>
-        </div>
-        <p class="help-text">Powered by DeepSeek AI - Get context-aware accessibility suggestions</p>
-
-        <div class="input-group" style="margin-top: 16px;">
-          <label class="input-label">
-            <span>🔑 DeepSeek API Key</span>
-            <span class="input-badge" id="keyStatus" style="display: none;">SAVED</span>
-          </label>
-          <div class="input-wrapper">
-            <input
-              type="password"
-              class="input"
-              id="apiKeyInput"
-              placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxx"
-            >
-            <span class="input-icon" id="togglePassword">👁️</span>
-          </div>
-          <p class="help-text">🔒 Stored securely in Figma. Only sent to DeepSeek API.</p>
-        </div>
-
-        <div class="btn-group">
-          <button class="btn btn-primary btn-small" id="saveSettingsBtn" style="flex: 2;">
-            💾 Save Settings
-          </button>
-          <button class="btn btn-error btn-small" id="removeKeyBtn" style="flex: 1;">
-            🗑️ Remove
-          </button>
-        </div>
-
-        <div class="help-box">
-          <div class="help-box-title">
-            💡 How to get your API key
-          </div>
-          <ol>
-            <li>Visit <strong>platform.deepseek.com</strong></li>
-            <li>Sign up (Free $5 credits included)</li>
-            <li>Navigate to <strong>API Keys</strong> section</li>
-            <li>Click <strong>Create API Key</strong></li>
-            <li>Copy and paste your key above</li>
-          </ol>
-        </div>
-      </div>
-    </div>
   </div>
 
   <script>
@@ -1153,25 +1088,15 @@
     const pauseBtn = document.getElementById('pauseBtn');
     const cancelBtn = document.getElementById('cancelBtn');
     const overlayToggle = document.getElementById('overlayToggle');
-    const aiToggle = document.getElementById('aiToggle');
-    const apiKeyInput = document.getElementById('apiKeyInput');
-    const saveSettingsBtn = document.getElementById('saveSettingsBtn');
-    const removeKeyBtn = document.getElementById('removeKeyBtn');
     const toggleOverlayBtn = document.getElementById('toggleOverlayBtn');
     const clearOverlayBtn = document.getElementById('clearOverlayBtn');
     const overlayControls = document.getElementById('overlayControls');
-    const togglePassword = document.getElementById('togglePassword');
-    const apiStatus = document.getElementById('apiStatus');
-    const statusDot = document.getElementById('statusDot');
-    const statusText = document.getElementById('statusText');
-    const keyStatus = document.getElementById('keyStatus');
     const cacheStatus = document.getElementById('cacheStatus');
     const cacheText = document.getElementById('cacheText');
     const reanalyzeBtn = document.getElementById('reanalyzeBtn');
     const clearCacheBtn = document.getElementById('clearCacheBtn');
 
     let overlayVisible = true;
-    let useAI = false;
     let showOverlay = true;
     let isAnalyzing = false;
     let isPaused = false;
@@ -1194,22 +1119,6 @@
       return icons[type] || '•';
     }
 
-    // Update API status
-    function updateAPIStatus(hasKey) {
-      if (hasKey) {
-        statusDot.classList.add('active');
-        statusText.textContent = 'API Key configured ✓';
-        keyStatus.style.display = 'inline-block';
-      } else {
-        statusDot.classList.remove('active');
-        statusText.textContent = 'API Key not configured';
-        keyStatus.style.display = 'none';
-      }
-    }
-
-    // Load settings
-    parent.postMessage({ pluginMessage: { type: 'load-settings' } }, '*');
-
     // Tab switching
     document.querySelectorAll('.tab').forEach(tab => {
       tab.addEventListener('click', () => {
@@ -1220,57 +1129,10 @@
       });
     });
 
-    // Toggle password visibility
-    togglePassword.addEventListener('click', () => {
-      const type = apiKeyInput.type === 'password' ? 'text' : 'password';
-      apiKeyInput.type = type;
-      togglePassword.textContent = type === 'password' ? '👁️' : '🔒';
-    });
-
     // Toggle handlers
     overlayToggle.addEventListener('click', () => {
       showOverlay = !showOverlay;
       overlayToggle.classList.toggle('active');
-    });
-
-    aiToggle.addEventListener('click', () => {
-      useAI = !useAI;
-      aiToggle.classList.toggle('active');
-    });
-
-    // Save settings
-    saveSettingsBtn.addEventListener('click', () => {
-      const apiKey = apiKeyInput.value.trim();
-      if (!apiKey) {
-        showNotification('Please enter an API key', 'error');
-        return;
-      }
-
-      parent.postMessage({
-        pluginMessage: {
-          type: 'save-settings',
-          apiKey: apiKey,
-          useAI: useAI
-        }
-      }, '*');
-    });
-
-    // Remove API key
-    removeKeyBtn.addEventListener('click', () => {
-      if (confirm('Are you sure you want to remove your API key?')) {
-        apiKeyInput.value = '';
-        parent.postMessage({
-          pluginMessage: {
-            type: 'save-settings',
-            apiKey: '',
-            useAI: false
-          }
-        }, '*');
-        updateAPIStatus(false);
-        useAI = false;
-        aiToggle.classList.remove('active');
-        showNotification('API key removed', 'warning');
-      }
     });
 
     // Analyze button
@@ -1293,14 +1155,10 @@
       progressContainer.classList.add('show');
       results.classList.remove('show');
 
-      const apiKey = apiKeyInput.value.trim();
-
       parent.postMessage({
         pluginMessage: {
           type: 'analyze',
           checks,
-          useAI: useAI && apiKey,
-          apiKey: apiKey || '',
           showOverlay: showOverlay,
           forceReanalyze: false
         }
@@ -1328,14 +1186,10 @@
       results.classList.remove('show');
       cacheStatus.classList.remove('show');
 
-      const apiKey = apiKeyInput.value.trim();
-
       parent.postMessage({
         pluginMessage: {
           type: 'analyze',
           checks,
-          useAI: useAI && apiKey,
-          apiKey: apiKey || '',
           showOverlay: showOverlay,
           forceReanalyze: true
         }
@@ -1429,22 +1283,6 @@
         showNotification('Cache cleared', 'success');
       }
 
-      if (msg.type === 'settings-loaded') {
-        if (msg.apiKey) {
-          apiKeyInput.value = msg.apiKey;
-          updateAPIStatus(true);
-        }
-        if (msg.useAI) {
-          useAI = msg.useAI;
-          aiToggle.classList.add('active');
-        }
-      }
-
-      if (msg.type === 'settings-saved') {
-        updateAPIStatus(apiKeyInput.value.trim() !== '');
-        showNotification('Settings saved successfully!', 'success');
-      }
-
       if (msg.type === 'analysis-progress') {
         const percent = msg.progress || 0;
         progressFill.style.width = percent + '%';
@@ -1512,7 +1350,6 @@
 
     function displayIssues(groupedIssues) {
       issuesList.innerHTML = '';
-      const aiEnabled = useAI && apiKeyInput.value.trim();
 
       groupedIssues.forEach(group => {
         const groupEl = document.createElement('div');
@@ -1528,7 +1365,6 @@
                   ${issue.issueType}
                   <span class="badge badge-${issue.severity}">${issue.severity}</span>
                   <span class="badge badge-${issue.wcagLevel.toLowerCase()}">${issue.wcagLevel}</span>
-                  ${aiEnabled ? '<span class="ai-indicator">✨ AI Enhanced</span>' : ''}
                 </div>
               </div>
 

@@ -285,11 +285,6 @@ figma.ui.onmessage = async (msg) => {
       await analyzeFrame(selectedFrame, checks);
       console.log('Analysis complete. Issues found:', currentIssues.length);
 
-      if (msg.useAI && msg.apiKey) {
-        console.log('AI enhancement enabled');
-        await enhanceWithAI(currentIssues, msg.apiKey);
-      }
-
       setCachedAnalysis(selectedFrame, currentIssues);
 
       const groupedIssues = groupIssuesByElement(currentIssues);
@@ -356,22 +351,6 @@ figma.ui.onmessage = async (msg) => {
         age: cached ? getCacheAge(cached.timestamp) : null
       });
     }
-  }
-
-  if (msg.type === 'save-settings') {
-    await figma.clientStorage.setAsync('deepseek_api_key', msg.apiKey);
-    await figma.clientStorage.setAsync('use_ai', msg.useAI);
-    figma.ui.postMessage({ type: 'settings-saved' });
-  }
-
-  if (msg.type === 'load-settings') {
-    const apiKey = await figma.clientStorage.getAsync('deepseek_api_key');
-    const useAI = await figma.clientStorage.getAsync('use_ai');
-    figma.ui.postMessage({
-      type: 'settings-loaded',
-      apiKey: apiKey || '',
-      useAI: useAI || false
-    });
   }
 };
 
@@ -655,60 +634,6 @@ function checkNonTextContrast(node: SceneNode) {
         }
       }
     }
-  }
-}
-
-async function enhanceWithAI(issues: AccessibilityIssue[], apiKey: string) {
-  try {
-    console.log('Starting AI enhancement with DeepSeek...');
-
-    const prompt = `You are an accessibility expert. Given these WCAG issues, provide better, context-aware suggestions in JSON format. Keep suggestions concise and actionable.
-
-Issues: ${JSON.stringify(issues.map(i => ({
-  element: i.elementName,
-  issue: i.issueType,
-  current: i.currentValue,
-  required: i.requiredValue
-})))}
-
-Return ONLY a JSON array with improved suggestions, one per issue, in the same order. Each item should be a string.`;
-
-    const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: 'deepseek-chat',
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.7,
-        max_tokens: 1000
-      })
-    });
-
-    if (!response.ok) {
-      console.error('DeepSeek API error:', response.status, response.statusText);
-      figma.notify('AI enhancement failed. Using standard suggestions.');
-      return;
-    }
-
-    const data = await response.json();
-    console.log('AI response received');
-
-    const aiSuggestions = JSON.parse(data.choices[0].message.content);
-
-    issues.forEach((issue, index) => {
-      if (aiSuggestions[index]) {
-        issue.suggestion = aiSuggestions[index];
-      }
-    });
-
-    console.log('AI enhancement completed successfully');
-    figma.notify('✨ AI suggestions applied!');
-  } catch (error) {
-    console.error('AI enhancement error:', error);
-    figma.notify('AI enhancement failed. Using standard suggestions.');
   }
 }
 
