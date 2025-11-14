@@ -1,4 +1,6 @@
-// code.ts - Professional Accessibility Plugin with Advanced Features & Caching
+// code.ts - Professional Accessibility Plugin with Advanced Features, Caching & Persistent History
+import { createSupabaseClient, SupabaseClient, AnalysisRecord } from './supabase-client';
+
 figma.showUI(__html__, { width: 380, height: 750, themeColors: true });
 
 const PLUGIN_VERSION = '1.0.0';
@@ -6,6 +8,11 @@ const CACHE_DURATION = 7 * 24 * 60 * 60 * 1000;
 const PLUGIN_DATA_KEY = 'a11y-analysis';
 
 const analysisCache = new Map<string, CachedAnalysis>();
+
+let supabaseClient: SupabaseClient | null = null;
+let currentUserId: string = 'figma-user-' + Date.now();
+let currentSessionId: string | null = null;
+let sessionFrameCount: number = 0;
 
 interface CachedAnalysis {
   timestamp: number;
@@ -38,6 +45,142 @@ let overlayFrame: FrameNode | null = null;
 let isPaused = false;
 let analysisProgress = 0;
 let totalElements = 0;
+
+async function initializePlugin() {
+  try {
+    supabaseClient = createSupabaseClient(currentUserId);
+
+    if (supabaseClient) {
+      currentSessionId = await supabaseClient.startSession();
+      console.log('✓ Supabase connected. Persistent history enabled.');
+      figma.ui.postMessage({ type: 'supabase-connected' });
+
+      await loadUnresolvedChanges();
+    } else {
+      console.log('⚠ Supabase not configured. Using local cache only.');
+      figma.ui.postMessage({ type: 'supabase-disconnected' });
+    }
+  } catch (error) {
+    console.error('Failed to initialize Supabase:', error);
+    figma.ui.postMessage({ type: 'supabase-error', message: String(error) });
+  }
+}
+
+async function loadUnresolvedChanges() {
+  if (!supabaseClient) return;
+
+  try {
+    const unresolvedChanges = await supabaseClient.getUnresolvedChanges();
+
+    if (unresolvedChanges.length > 0) {
+      figma.ui.postMessage({
+        type: 'unresolved-changes',
+        changes: unresolvedChanges
+      });
+    }
+  } catch (error) {
+    console.error('Failed to load unresolved changes:', error);
+  }
+}
+
+async function checkFrameForChanges(frame: FrameNode): Promise<boolean> {
+  if (!supabaseClient) return false;
+
+  try {
+    const latestAnalysis = await supabaseClient.getLatestAnalysis(frame.id);
+
+    if (!latestAnalysis) {
+      return false;
+    }
+
+    const currentHash = generateContentHash(frame);
+
+    if (currentHash !== latestAnalysis.content_hash) {
+      await supabaseClient.detectFrameChange(
+        frame.id,
+        latestAnalysis.content_hash,
+        currentHash
+      );
+
+      return true;
+    }
+
+    return latestAnalysis.has_changes;
+  } catch (error) {
+    console.error('Failed to check frame for changes:', error);
+    return false;
+  }
+}
+
+async function loadPersistentAnalysis(frame: FrameNode): Promise<CachedAnalysis | null> {
+  if (!supabaseClient) return null;
+
+  try {
+    const latestAnalysis = await supabaseClient.getLatestAnalysis(frame.id);
+
+    if (!latestAnalysis) {
+      return null;
+    }
+
+    const currentHash = generateContentHash(frame);
+
+    if (currentHash !== latestAnalysis.content_hash) {
+      console.log('⚠ Frame has changed since last analysis');
+      return null;
+    }
+
+    const cached: CachedAnalysis = {
+      timestamp: new Date(latestAnalysis.analyzed_at).getTime(),
+      version: PLUGIN_VERSION,
+      contentHash: latestAnalysis.content_hash,
+      results: latestAnalysis.analysis_data.issues || []
+    };
+
+    analysisCache.set(frame.id, cached);
+    frame.setPluginData(PLUGIN_DATA_KEY, JSON.stringify(cached));
+
+    console.log('✓ Loaded analysis from Supabase:', frame.name);
+    return cached;
+  } catch (error) {
+    console.error('Failed to load persistent analysis:', error);
+    return null;
+  }
+}
+
+async function savePersistentAnalysis(frame: FrameNode, results: AccessibilityIssue[]): Promise<void> {
+  if (!supabaseClient) return;
+
+  try {
+    const failCount = results.filter(r => r.severity === 'fail').length;
+    const warningCount = results.filter(r => r.severity === 'warning').length;
+
+    const analysisRecord: AnalysisRecord = {
+      frame_id: frame.id,
+      frame_name: frame.name,
+      user_id: currentUserId,
+      content_hash: generateContentHash(frame),
+      total_issues: results.length,
+      fail_count: failCount,
+      warning_count: warningCount,
+      analysis_data: {
+        issues: results,
+        plugin_version: PLUGIN_VERSION
+      },
+      plugin_version: PLUGIN_VERSION
+    };
+
+    await supabaseClient.saveAnalysis(analysisRecord);
+    await supabaseClient.resolveFrameChanges(frame.id);
+
+    sessionFrameCount++;
+
+    console.log('✓ Analysis saved to Supabase:', frame.name);
+  } catch (error) {
+    console.error('Failed to save persistent analysis:', error);
+  }
+}
+
+initializePlugin();
 
 function getCachedAnalysis(frame: FrameNode): CachedAnalysis | null {
   let cached = analysisCache.get(frame.id);
@@ -197,7 +340,7 @@ function getCacheAge(timestamp: number): string {
   return 'just now';
 }
 
-figma.on('selectionchange', () => {
+figma.on('selectionchange', async () => {
   const selection = figma.currentPage.selection;
 
   if (selection.length === 0) {
@@ -210,11 +353,34 @@ figma.on('selectionchange', () => {
     selectedFrame = selection[0] as FrameNode;
     figma.ui.postMessage({ type: 'selection-valid', frameName: selectedFrame.name });
 
+    const hasChanges = await checkFrameForChanges(selectedFrame);
+
     const cached = getCachedAnalysis(selectedFrame);
+    if (!cached && supabaseClient) {
+      const persistentCache = await loadPersistentAnalysis(selectedFrame);
+      if (persistentCache) {
+        figma.ui.postMessage({
+          type: 'cache-available',
+          age: getCacheAge(persistentCache.timestamp),
+          fromPersistent: true,
+          hasChanges: hasChanges
+        });
+        return;
+      }
+    }
+
     if (cached) {
       figma.ui.postMessage({
         type: 'cache-available',
-        age: getCacheAge(cached.timestamp)
+        age: getCacheAge(cached.timestamp),
+        fromPersistent: false,
+        hasChanges: hasChanges
+      });
+    } else if (hasChanges) {
+      figma.ui.postMessage({
+        type: 'frame-has-changes',
+        frameId: selectedFrame.id,
+        frameName: selectedFrame.name
       });
     }
   } else {
@@ -286,6 +452,7 @@ figma.ui.onmessage = async (msg) => {
       console.log('Analysis complete. Issues found:', currentIssues.length);
 
       setCachedAnalysis(selectedFrame, currentIssues);
+      await savePersistentAnalysis(selectedFrame, currentIssues);
 
       const groupedIssues = groupIssuesByElement(currentIssues);
 
@@ -352,7 +519,58 @@ figma.ui.onmessage = async (msg) => {
       });
     }
   }
+
+  if (msg.type === 'get-frame-history') {
+    if (selectedFrame && supabaseClient) {
+      try {
+        const history = await supabaseClient.getFrameHistory(selectedFrame.id);
+        figma.ui.postMessage({
+          type: 'frame-history',
+          history: history
+        });
+      } catch (error) {
+        console.error('Failed to load frame history:', error);
+      }
+    }
+  }
+
+  if (msg.type === 'get-all-analyses') {
+    if (supabaseClient) {
+      try {
+        const analyses = await supabaseClient.getAllAnalyses(msg.limit || 50);
+        figma.ui.postMessage({
+          type: 'all-analyses',
+          analyses: analyses
+        });
+      } catch (error) {
+        console.error('Failed to load analyses:', error);
+      }
+    }
+  }
+
+  if (msg.type === 'load-analysis-by-id') {
+    try {
+      const node = figma.getNodeById(msg.frameId);
+      if (node && node.type === 'FRAME') {
+        figma.currentPage.selection = [node];
+        figma.viewport.scrollAndZoomIntoView([node]);
+      }
+    } catch (error) {
+      console.error('Failed to load frame:', error);
+    }
+  }
 };
+
+figma.on('close', async () => {
+  if (supabaseClient && currentSessionId) {
+    try {
+      await supabaseClient.endSession(currentSessionId, sessionFrameCount);
+      console.log('✓ Session ended. Analyzed', sessionFrameCount, 'frames.');
+    } catch (error) {
+      console.error('Failed to end session:', error);
+    }
+  }
+});
 
 function countElements(node: SceneNode): number {
   let count = 1;

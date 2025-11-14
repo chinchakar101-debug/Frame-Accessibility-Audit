@@ -633,6 +633,82 @@
       color: #5b21b6;
     }
 
+    .badge-changed {
+      background: #fef3c7;
+      color: #92400e;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+
+    .history-card {
+      padding: 12px;
+      background: var(--bg-primary);
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+
+    .history-card:hover {
+      box-shadow: 0 4px 12px var(--shadow);
+      transform: translateY(-2px);
+      border-color: var(--primary);
+    }
+
+    .history-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 8px;
+    }
+
+    .history-frame-name {
+      font-weight: 700;
+      font-size: 11px;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+
+    .history-date {
+      font-size: 10px;
+      color: var(--text-secondary);
+    }
+
+    .history-stats {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .history-stat {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10px;
+      padding: 4px 8px;
+      background: var(--bg-secondary);
+      border-radius: 4px;
+    }
+
+    .stat-count {
+      font-weight: 700;
+    }
+
+    .change-indicator {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 10px;
+      height: 10px;
+      background: #f59e0b;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
     .issue-values {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -962,6 +1038,9 @@
       <button class="tab active" data-tab="analyze">
         <span>🔍</span> Analyze
       </button>
+      <button class="tab" data-tab="history">
+        <span>📚</span> History
+      </button>
     </div>
 
     <!-- Analyze Tab -->
@@ -1070,6 +1149,36 @@
       </div>
     </div>
 
+    <!-- History Tab -->
+    <div class="tab-content" id="history-tab">
+      <div class="section">
+        <div class="section-title">
+          <span class="section-icon">📜</span>
+          Analysis History
+        </div>
+        <div id="historyStatus" style="padding: 20px; text-align: center; color: var(--text-secondary); font-size: 11px;">
+          Loading history...
+        </div>
+        <div id="historyList" style="display: flex; flex-direction: column; gap: 8px;"></div>
+      </div>
+
+      <div class="section" id="frameHistorySection" style="display: none;">
+        <div class="section-title">
+          <span class="section-icon">🔄</span>
+          Selected Frame History
+        </div>
+        <div id="frameHistoryList" style="display: flex; flex-direction: column; gap: 8px;"></div>
+      </div>
+
+      <div class="section" id="changesSection" style="display: none;">
+        <div class="section-title">
+          <span class="section-icon">⚠️</span>
+          Frames with Changes
+        </div>
+        <div id="changesList" style="display: flex; flex-direction: column; gap: 8px;"></div>
+      </div>
+    </div>
+
   </div>
 
   <script>
@@ -1126,8 +1235,189 @@
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
         tab.classList.add('active');
         document.getElementById(tab.dataset.tab + '-tab').classList.add('active');
+
+        if (tab.dataset.tab === 'history') {
+          loadHistory();
+        }
       });
     });
+
+    // History management
+    let currentHistory = [];
+    let unresolvedChanges = [];
+
+    function loadHistory() {
+      parent.postMessage({
+        pluginMessage: { type: 'get-all-analyses', limit: 50 }
+      }, '*');
+    }
+
+    function displayHistory(analyses) {
+      const historyList = document.getElementById('historyList');
+      const historyStatus = document.getElementById('historyStatus');
+
+      if (!analyses || analyses.length === 0) {
+        historyStatus.textContent = 'No analysis history yet. Analyze a frame to get started!';
+        historyList.innerHTML = '';
+        return;
+      }
+
+      historyStatus.style.display = 'none';
+      historyList.innerHTML = '';
+
+      analyses.forEach(analysis => {
+        const card = document.createElement('div');
+        card.className = 'history-card';
+        card.style.position = 'relative';
+
+        const hasChanges = unresolvedChanges.some(change => change.frame_id === analysis.frame_id);
+
+        const date = new Date(analysis.analyzed_at);
+        const timeAgo = getTimeAgo(date);
+
+        card.innerHTML = `
+          ${hasChanges ? '<div class="change-indicator" title="Frame has changed"></div>' : ''}
+          <div class="history-header">
+            <div>
+              <div class="history-frame-name">${analysis.frame_name}</div>
+              <div class="history-date">${timeAgo}</div>
+            </div>
+            ${hasChanges ? '<span class="badge badge-changed">Changed</span>' : ''}
+          </div>
+          <div class="history-stats">
+            <div class="history-stat">
+              <span>📊</span>
+              <span class="stat-count">${analysis.total_issues}</span>
+              <span>issues</span>
+            </div>
+            <div class="history-stat">
+              <span>❌</span>
+              <span class="stat-count">${analysis.fail_count}</span>
+              <span>fails</span>
+            </div>
+            <div class="history-stat">
+              <span>⚠️</span>
+              <span class="stat-count">${analysis.warning_count}</span>
+              <span>warnings</span>
+            </div>
+          </div>
+        `;
+
+        card.addEventListener('click', () => {
+          parent.postMessage({
+            pluginMessage: { type: 'load-analysis-by-id', frameId: analysis.frame_id }
+          }, '*');
+          document.querySelector('[data-tab="analyze"]').click();
+        });
+
+        historyList.appendChild(card);
+      });
+    }
+
+    function displayFrameHistory(history) {
+      const frameHistorySection = document.getElementById('frameHistorySection');
+      const frameHistoryList = document.getElementById('frameHistoryList');
+
+      if (!history || history.length === 0) {
+        frameHistorySection.style.display = 'none';
+        return;
+      }
+
+      frameHistorySection.style.display = 'block';
+      frameHistoryList.innerHTML = '';
+
+      history.forEach((analysis, index) => {
+        const card = document.createElement('div');
+        card.className = 'history-card';
+
+        const date = new Date(analysis.analyzed_at);
+        const timeAgo = getTimeAgo(date);
+
+        card.innerHTML = `
+          <div class="history-header">
+            <div>
+              <div class="history-frame-name">Version ${history.length - index}</div>
+              <div class="history-date">${timeAgo}</div>
+            </div>
+          </div>
+          <div class="history-stats">
+            <div class="history-stat">
+              <span>📊</span>
+              <span class="stat-count">${analysis.total_issues}</span>
+              <span>issues</span>
+            </div>
+            <div class="history-stat">
+              <span>❌</span>
+              <span class="stat-count">${analysis.fail_count}</span>
+              <span>fails</span>
+            </div>
+          </div>
+        `;
+
+        frameHistoryList.appendChild(card);
+      });
+    }
+
+    function displayUnresolvedChanges(changes) {
+      unresolvedChanges = changes;
+
+      const changesSection = document.getElementById('changesSection');
+      const changesList = document.getElementById('changesList');
+
+      if (!changes || changes.length === 0) {
+        changesSection.style.display = 'none';
+        return;
+      }
+
+      changesSection.style.display = 'block';
+      changesList.innerHTML = '';
+
+      const uniqueFrames = [...new Set(changes.map(c => c.frame_id))];
+
+      uniqueFrames.forEach(frameId => {
+        const frameChanges = changes.filter(c => c.frame_id === frameId);
+        const latestChange = frameChanges[0];
+
+        const card = document.createElement('div');
+        card.className = 'history-card';
+        card.style.borderColor = '#f59e0b';
+
+        const date = new Date(latestChange.change_detected_at);
+        const timeAgo = getTimeAgo(date);
+
+        card.innerHTML = `
+          <div class="history-header">
+            <div>
+              <div class="history-frame-name">Frame ID: ${frameId}</div>
+              <div class="history-date">Changed ${timeAgo}</div>
+            </div>
+            <span class="badge badge-changed">⚠ Re-analyze</span>
+          </div>
+        `;
+
+        card.addEventListener('click', () => {
+          parent.postMessage({
+            pluginMessage: { type: 'load-analysis-by-id', frameId: frameId }
+          }, '*');
+          document.querySelector('[data-tab="analyze"]').click();
+        });
+
+        changesList.appendChild(card);
+      });
+    }
+
+    function getTimeAgo(date) {
+      const now = new Date();
+      const diffMs = now - date;
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMins / 60);
+      const diffDays = Math.floor(diffHours / 24);
+
+      if (diffDays > 0) return `${diffDays}d ago`;
+      if (diffHours > 0) return `${diffHours}h ago`;
+      if (diffMins > 0) return `${diffMins}m ago`;
+      return 'just now';
+    }
 
     // Toggle handlers
     overlayToggle.addEventListener('click', () => {
@@ -1345,6 +1635,42 @@
         analyzeBtn.disabled = false;
         analyzeBtn.innerHTML = '<span>▶</span><span>Start Analysis</span>';
         showNotification(msg.message, 'error');
+      }
+
+      if (msg.type === 'supabase-connected') {
+        console.log('✓ Supabase connected - persistent history enabled');
+      }
+
+      if (msg.type === 'supabase-disconnected') {
+        console.log('⚠ Supabase not configured - using local cache only');
+      }
+
+      if (msg.type === 'unresolved-changes') {
+        displayUnresolvedChanges(msg.changes);
+      }
+
+      if (msg.type === 'frame-has-changes') {
+        cacheStatus.classList.add('show');
+        cacheText.innerHTML = `<span class="badge badge-changed">⚠ Frame changed - re-analyze recommended</span>`;
+      }
+
+      if (msg.type === 'all-analyses') {
+        currentHistory = msg.analyses;
+        displayHistory(msg.analyses);
+      }
+
+      if (msg.type === 'frame-history') {
+        displayFrameHistory(msg.history);
+      }
+
+      if (msg.type === 'cache-available') {
+        cacheStatus.classList.add('show');
+        const changeIndicator = msg.hasChanges ? ' <span class="badge badge-changed">Changed</span>' : '';
+        cacheText.innerHTML = `Analysis from ${msg.age}${changeIndicator}`;
+
+        if (msg.fromPersistent) {
+          console.log('✓ Loaded from persistent storage');
+        }
       }
     };
 
